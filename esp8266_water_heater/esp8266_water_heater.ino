@@ -1,9 +1,10 @@
 #include <ESP8266WiFi.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
+#include <LittleFS.h>
+#include <ESP8266WebServer.h>
 
 #include "secrets.h"
-
 
 // ============================================================
 // HARDWARE CONFIGURATION
@@ -11,27 +12,16 @@
 
 const uint8_t RELAY_PIN = 0;
 
-
 // ============================================================
 // SYSTEM CONFIGURATION
 // ============================================================
 
 const long UTC_OFFSET_SECONDS = -10800;
-
 const unsigned long LOOP_DELAY_MS = 5000;
-
 
 // ============================================================
 // TYPES
 // ============================================================
-
-// Represents one automatic heating schedule.
-//
-// Times are expressed as minutes since midnight.
-//
-// Example:
-// 06:00 -> 360
-// 07:00 -> 420
 
 struct Schedule
 {
@@ -39,33 +29,22 @@ struct Schedule
   uint16_t endMinutes;
 };
 
-
-// Represents the control mode of the water heater.
-
 enum ControlMode
 {
   MODE_AUTO,
   MODE_MANUAL
 };
 
-
 // ============================================================
 // WATER HEATER CONFIGURATION
 // ============================================================
-
-// Configuration that can eventually be modified
-// through the local web interface.
 
 struct WaterHeaterConfig
 {
   Schedule schedules[4];
   uint8_t scheduleCount;
-
   ControlMode controlMode;
 };
-
-
-// Current water heater configuration.
 
 WaterHeaterConfig waterHeaterConfig =
 {
@@ -74,21 +53,13 @@ WaterHeaterConfig waterHeaterConfig =
     {1080, 1140}      // 18:00 - 19:00
   },
 
-  2,                  // Number of active schedules
-
-  MODE_AUTO           // Control mode
+  2,
+  MODE_AUTO
 };
-
 
 // ============================================================
 // WATER HEATER STATE
 // ============================================================
-
-// Represents the current operational state of the
-// water heater.
-//
-// Some of these values will eventually be exposed
-// through the web API.
 
 struct WaterHeaterState
 {
@@ -96,15 +67,11 @@ struct WaterHeaterState
   bool relayIsOn;
 };
 
-
-// Current water heater state.
-
 WaterHeaterState waterHeaterState =
 {
-  false,              // Manual relay state
-  false               // Relay state
+  false,
+  false
 };
-
 
 // ============================================================
 // NTP
@@ -118,6 +85,11 @@ NTPClient timeClient(
   UTC_OFFSET_SECONDS
 );
 
+// ============================================================
+// WEB SERVER
+// ============================================================
+
+ESP8266WebServer server(80);
 
 // ============================================================
 // CURRENT TIME
@@ -137,32 +109,16 @@ struct CurrentTime
 
 CurrentTime currentTime;
 
-
 // ============================================================
 // TEST / SERIAL DATA
 // ============================================================
 
-// These variables and functions are kept for now because
-// they are part of the original test code.
-
 int serialIndex;
 byte serialData[20];
-
 
 // ============================================================
 // FUNCTION: setRelay
 // ============================================================
-
-// Controls the physical relay.
-//
-// The relay module uses inverted logic:
-//
-// ON  -> GPIO LOW
-// OFF -> GPIO HIGH
-//
-// The rest of the program should only use:
-// setRelay(true)  -> ON
-// setRelay(false) -> OFF
 
 void setRelay(bool turnOn)
 {
@@ -173,7 +129,6 @@ void setRelay(bool turnOn)
 
   waterHeaterState.relayIsOn = turnOn;
 }
-
 
 // ============================================================
 // FUNCTION: checkSerial
@@ -204,12 +159,9 @@ void checkSerial()
   }
 }
 
-
 // ============================================================
 // FUNCTION: isScheduleActive
 // ============================================================
-
-// Returns true when the specified schedule is active.
 
 bool isScheduleActive(
   const Schedule& schedule,
@@ -222,13 +174,9 @@ bool isScheduleActive(
   );
 }
 
-
 // ============================================================
 // FUNCTION: shouldHeatAutomatically
 // ============================================================
-
-// Determines whether the automatic schedule requires
-// the water heater to be ON.
 
 bool shouldHeatAutomatically(uint16_t currentMinutes)
 {
@@ -252,13 +200,9 @@ bool shouldHeatAutomatically(uint16_t currentMinutes)
   return false;
 }
 
-
 // ============================================================
 // FUNCTION: shouldRelayBeOn
 // ============================================================
-
-// Determines the desired water heater state based on
-// the current control mode.
 
 bool shouldRelayBeOn(uint16_t currentMinutes)
 {
@@ -270,11 +214,9 @@ bool shouldRelayBeOn(uint16_t currentMinutes)
   return shouldHeatAutomatically(currentMinutes);
 }
 
-
 // ============================================================
 // FUNCTION: updateCurrentTime
 // ============================================================
-// Single entity : Time (Not independent global variables)
 
 void updateCurrentTime()
 {
@@ -287,9 +229,6 @@ void updateCurrentTime()
 // FUNCTION: updateRelay
 // ============================================================
 
-// Updates the physical relay according to the current
-// configuration and time.
-
 void updateRelay()
 {
   uint16_t currentMinutes =
@@ -301,43 +240,9 @@ void updateRelay()
   setRelay(relayShouldBeOn);
 }
 
-
 // ============================================================
-// SETUP
+// FUNCTION: printSystemStatus
 // ============================================================
-
-void setup()
-{
-  Serial.begin(9600);
-
-  pinMode(RELAY_PIN, OUTPUT);
-
-  // Initial state: OFF.
-  setRelay(false);
-
-  /*
-  // Relay startup test.
-
-  delay(2000);
-  setRelay(true);
-
-  delay(2000);
-  setRelay(false);
-  */
-
-  // Connect to Wi-Fi.
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial.print(".");
-  }
-
-  // Start NTP client.
-  timeClient.begin();
-}
-
 
 void printSystemStatus()
 {
@@ -377,11 +282,93 @@ void printSystemStatus()
 }
 
 // ============================================================
+// FUNCTION: handleRoot
+// ============================================================
+
+void handleRoot()
+{
+  File file = LittleFS.open("/index.html", "r");
+
+  if (!file)
+  {
+    server.send(
+      500,
+      "text/plain",
+      "No se pudo abrir index.html"
+    );
+
+    return;
+  }
+
+  server.streamFile(file, "text/html");
+
+  file.close();
+}
+
+// ============================================================
+// SETUP
+// ============================================================
+
+void setup()
+{
+  Serial.begin(9600);
+
+  pinMode(RELAY_PIN, OUTPUT);
+
+  // Initial state: OFF.
+  setRelay(false);
+
+  /*
+  // Relay startup test.
+
+  delay(2000);
+  setRelay(true);
+
+  delay(2000);
+  setRelay(false);
+  */
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+
+  timeClient.begin();
+
+  // ==========================================================
+  // LITTLEFS
+  // ==========================================================
+
+  if (!LittleFS.begin())
+  {
+    Serial.println("Error al montar LittleFS");
+    return;
+  }
+
+  // ==========================================================
+  // WEB SERVER
+  // ==========================================================
+
+  server.on("/", handleRoot);
+
+  server.begin();
+
+  Serial.println("Servidor web iniciado");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
+}
+
+// ============================================================
 // LOOP
 // ============================================================
 
 void loop()
 {
+  server.handleClient();
+
   timeClient.update();
 
   updateCurrentTime();
