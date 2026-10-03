@@ -305,6 +305,27 @@ void handleRoot()
   file.close();
 }
 
+void handleStyle()
+{
+  File file = LittleFS.open("/style.css", "r");
+
+  if (!file)
+  {
+    server.send(
+      500,
+      "text/plain",
+      "No se pudo abrir style.css"
+    );
+
+    return;
+  }
+
+  server.streamFile(file, "text/css");
+
+  file.close();
+}
+
+
 // ============================================================
 // SETUP
 // ============================================================
@@ -353,6 +374,7 @@ void setup()
   // ==========================================================
 
   server.on("/", handleRoot);
+  server.on("/style.css", handleStyle);
 
   server.begin();
 
@@ -365,6 +387,7 @@ void setup()
 // LOOP
 // ============================================================
 
+// Loop principal 
 void loop()
 {
   server.handleClient();
@@ -379,3 +402,20 @@ void loop()
 
   delay(LOOP_DELAY_MS);
 }
+
+
+// Relay TESTING LOOP
+/*
+void loop()
+{
+  setRelay(true);
+  Serial.println("Relay: ON");
+
+  delay(3000);
+
+  setRelay(false);
+  Serial.println("Relay: OFF");
+
+  delay(3000);
+}
+*/

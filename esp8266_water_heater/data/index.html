@@ -1,12 +1,144 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
   <title>Termotanque</title>
+  <link rel="stylesheet" href="./style.css">
+
+
 </head>
 
 <body>
-  <h1>Termotanque</h1>
-  <p>Servidor web funcionando.</p>
+
+  <main class="container">
+
+    <header class="header">
+      <div>
+        <p class="terminal-label">SYSTEM://WATER_HEATER</p>
+        <h1>TERMOTANQUE</h1>
+      </div>
+
+      <div class="connection">
+        <span class="status-dot"></span>
+        ONLINE
+      </div>
+    </header>
+
+
+    <section class="status-card">
+
+      <div class="status-header">
+        <span>ESTADO ACTUAL</span>
+        <span class="status-badge off">APAGADO</span>
+      </div>
+
+      <div class="status-main">
+
+        <div class="temperature-placeholder">
+          <span class="temperature-value">--</span>
+          <span class="temperature-unit">°C</span>
+        </div>
+
+        <div class="status-info">
+
+          <div class="info-row">
+            <span>Modo</span>
+            <strong>AUTOMÁTICO</strong>
+          </div>
+
+          <div class="info-row">
+            <span>Horario</span>
+            <strong>22:45</strong>
+          </div>
+
+          <div class="info-row">
+            <span>Próximo encendido</span>
+            <strong>06:00</strong>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section class="control-card">
+
+      <div class="section-title">
+        <span>&gt; CONTROL MANUAL</span>
+      </div>
+
+      <div class="control-buttons">
+
+        <button class="btn btn-on">
+          ENCENDER
+        </button>
+
+        <button class="btn btn-off">
+          APAGAR
+        </button>
+
+      </div>
+
+      <p class="warning">
+        ⚠ El control manual ignora temporalmente los horarios automáticos.
+      </p>
+
+    </section>
+
+
+    <section class="schedule-card">
+
+      <div class="section-title">
+        <span>&gt; HORARIOS</span>
+      </div>
+
+      <div class="schedule-list">
+
+        <div class="schedule-row">
+          <span class="schedule-number">01</span>
+
+          <div class="schedule-time">
+            <strong>06:00</strong>
+            <span>→</span>
+            <strong>07:00</strong>
+          </div>
+
+          <span class="schedule-state">ACTIVE</span>
+        </div>
+
+
+        <div class="schedule-row">
+          <span class="schedule-number">02</span>
+
+          <div class="schedule-time">
+            <strong>18:00</strong>
+            <span>→</span>
+            <strong>19:00</strong>
+          </div>
+
+          <span class="schedule-state">ACTIVE</span>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <footer>
+      <span>ESP8266 WATER HEATER CONTROLLER</span>
+      <span>v0.1</span>
+    </footer>
+
+  </main>
+
 </body>
+
 </html>
