@@ -54,8 +54,8 @@ WaterHeaterConfig waterHeaterConfig =
   },
 
   2,
-  MODE_MANUAL
-  //MODE_AUTO
+  //MODE_MANUAL
+  MODE_AUTO
 };
 
 // ============================================================
