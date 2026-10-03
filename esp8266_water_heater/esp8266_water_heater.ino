@@ -54,7 +54,8 @@ WaterHeaterConfig waterHeaterConfig =
   },
 
   2,
-  MODE_AUTO
+  MODE_MANUAL
+  //MODE_AUTO
 };
 
 // ============================================================
@@ -327,6 +328,74 @@ void handleStyle()
 
 
 // ============================================================
+// FUNCTION: handleControl
+// ============================================================
+
+void handleControl()
+{
+  // Manual control is only allowed in MANUAL mode.
+  if (waterHeaterConfig.controlMode != MODE_MANUAL)
+  {
+    server.send(
+      409,
+      "text/plain",
+      "Control manual no disponible en modo AUTO"
+    );
+
+    return;
+  }
+
+  // Check that the "state" parameter was received.
+  if (!server.hasArg("state"))
+  {
+    server.send(
+      400,
+      "text/plain",
+      "Falta el parametro 'state'"
+    );
+
+    return;
+  }
+
+  String requestedState = server.arg("state");
+
+  if (requestedState == "on")
+  {
+    waterHeaterState.manualRelayState = true;
+    setRelay(true);
+
+    server.send(
+      200,
+      "text/plain",
+      "Relay ON"
+    );
+
+    return;
+  }
+
+  if (requestedState == "off")
+  {
+    waterHeaterState.manualRelayState = false;
+    setRelay(false);
+
+    server.send(
+      200,
+      "text/plain",
+      "Relay OFF"
+    );
+
+    return;
+  }
+
+  // Invalid state value.
+  server.send(
+    400,
+    "text/plain",
+    "Valor de 'state' invalido. Use 'on' o 'off'"
+  );
+}
+
+// ============================================================
 // SETUP
 // ============================================================
 
@@ -373,10 +442,11 @@ void setup()
   // WEB SERVER
   // ==========================================================
 
-  server.on("/", handleRoot);
-  server.on("/style.css", handleStyle);
+server.on("/", handleRoot);
+server.on("/style.css", handleStyle);
+server.on("/api/control", HTTP_POST, handleControl);
 
-  server.begin();
+server.begin();
 
   Serial.println("Servidor web iniciado");
   Serial.print("IP: ");
