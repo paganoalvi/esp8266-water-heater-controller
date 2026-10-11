@@ -460,3 +460,68 @@
       }
 
     }
+
+
+  /* Selector del modo de funcionamiento */
+  #mode-selector {
+    display: block;
+    width: 100%;
+    max-width: 260px;
+    margin-top: 10px;
+    padding: 12px 40px 12px 14px;
+
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--green);
+
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    cursor: pointer;
+    outline: none;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  /* Opciones del desplegable */
+  #mode-selector option {
+    color: var(--text);
+    background-color: var(--surface);
+  }
+
+  /* Al pasar el cursor */
+  #mode-selector:hover {
+    border-color: var(--green-dark);
+    background-color: var(--surface-light);
+  }
+
+  /* Foco visible con verde */
+  #mode-selector:focus-visible {
+    border-color: var(--green);
+    box-shadow: 0 0 0 2px rgba(0, 255, 65, 0.15);
+  }
+
+  /* Mientras se procesa el cambio */
+  #mode-selector:disabled {
+    color: var(--text-dim);
+    border-color: var(--border);
+    cursor: wait;
+    opacity: 0.65;
+  }
+
+  /* Mensaje de estado */
+  #mode-message {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* Adaptación para mensajes de error */
+  #mode-message.error {
+    color: var(--green);
+  }

@@ -35,31 +35,39 @@
 
   <div class="status-header">
     <span>ESTADO ACTUAL</span>
-    <span class="status-badge off">APAGADO</span>
+    <span class="status-badge off" id="relay-status">
+      DESCONOCIDO
+    </span>
   </div>
 
   <div class="status-main">
 
-    <div class="temperature-placeholder">
-      <span class="temperature-value">--</span>
-      <span class="temperature-unit">°C</span>
-    </div>
+
 
     <div class="status-info">
 
       <div class="info-row">
         <span>Modo</span>
-        <strong>AUTOMÁTICO</strong>
+        
+    <select id="mode-selector" aria-label="Modo de funcionamiento">
+      <option value="AUTO">Automático</option>
+      <option value="MANUAL">Manual</option>
+    </select>
+
+    <p id="mode-message" role="status">
+      Seleccioná un modo de funcionamiento.
+    </p>
+
       </div>
 
       <div class="info-row">
         <span>Horario</span>
-        <strong>22:45</strong>
+        <strong id="current-time">--:--:--</strong>
       </div>
 
       <div class="info-row">
         <span>Próximo encendido</span>
-        <strong>06:00</strong>
+        <strong id="schedule-status">--</strong>
       </div>
 
     </div>
@@ -77,11 +85,17 @@
 
   <div class="control-buttons">
 
-    <button onclick="handleRelayCommand('on')">
+    <button
+      class="btn btn-on"
+      onclick="handleRelayCommand('on')"
+    >
       ENCENDER
     </button>
 
-    <button onclick="handleRelayCommand('off')">
+    <button
+      class="btn btn-off"
+      onclick="handleRelayCommand('off')"
+    >
       APAGAR
     </button>
 
@@ -100,33 +114,8 @@
     <span>&gt; HORARIOS</span>
   </div>
 
-  <div class="schedule-list">
-
-    <div class="schedule-row">
-      <span class="schedule-number">01</span>
-
-      <div class="schedule-time">
-        <strong>06:00</strong>
-        <span>→</span>
-        <strong>07:00</strong>
-      </div>
-
-      <span class="schedule-state">ACTIVE</span>
-    </div>
-
-
-    <div class="schedule-row">
-      <span class="schedule-number">02</span>
-
-      <div class="schedule-time">
-        <strong>18:00</strong>
-        <span>→</span>
-        <strong>19:00</strong>
-      </div>
-
-      <span class="schedule-state">ACTIVE</span>
-    </div>
-
+  <div class="schedule-list" id="schedule-list">
+    <!-- Los horarios se generan desde JavaScript -->
   </div>
 
 </section>
@@ -139,6 +128,7 @@
 ```
 
   </main>
+  <script src="./js/api.js"></script>
 
   <script>
   async function handleRelayCommand(state) {
@@ -153,8 +143,122 @@
       message.textContent = "⚠ " + error.message;
     }
   }
+
+
+  async function refreshStatus() {
+    try {
+      const status = await getStatus();
+
+      // Relay state
+      const relayStatus = document.getElementById("relay-status");
+
+      relayStatus.textContent = status.relayIsOn
+        ? "ENCENDIDO"
+        : "APAGADO";
+
+      relayStatus.classList.toggle("on", status.relayIsOn);
+      relayStatus.classList.toggle("off", !status.relayIsOn);
+
+      // Control mode
+      const modeSelector = document.getElementById("mode-selector");
+
+      if (!changingMode) {
+        modeSelector.value = status.mode;
+      }
+
+      // Current time
+      document.getElementById("current-time").textContent =
+        status.timeValid ? status.time : "Sin sincronizar";
+
+      // Schedule status
+      document.getElementById("schedule-status").textContent =
+        status.scheduleActive ? "ACTIVO" : "INACTIVO";
+
+      // Schedule list
+      const scheduleList = document.getElementById("schedule-list");
+
+      scheduleList.replaceChildren();
+
+      status.schedules.forEach((schedule, index) => {
+        const row = document.createElement("div");
+        row.className = "schedule-row";
+
+        const number = document.createElement("span");
+        number.className = "schedule-number";
+        number.textContent = String(index + 1).padStart(2, "0");
+
+        const time = document.createElement("div");
+        time.className = "schedule-time";
+
+        const start = document.createElement("strong");
+        start.textContent = schedule.start;
+
+        const arrow = document.createElement("span");
+        arrow.textContent = "→";
+
+        const end = document.createElement("strong");
+        end.textContent = schedule.end;
+
+        time.append(start, arrow, end);
+
+        const state = document.createElement("span");
+        state.className = "schedule-state";
+        state.textContent = "PROGRAMADO";
+
+        row.append(number, time, state);
+        scheduleList.appendChild(row);
+      });
+
+    } catch (error) {
+      console.error("Error al consultar el estado:", error);
+    }
+  }
+
+  // Initial status and periodic refresh
+  refreshStatus();
+  setInterval(refreshStatus, 5000);
+
+
+  let changingMode = false;
+
+  async function changeControlMode() {
+    if (changingMode) return;
+
+    const selector = document.getElementById("mode-selector");
+    const message = document.getElementById("mode-message");
+    const selectedMode = selector.value;
+
+    changingMode = true;
+    selector.disabled = true;
+    message.textContent = "Aplicando modo...";
+
+    try {
+      await setControlMode(selectedMode);
+
+      message.textContent =
+        selectedMode === "AUTO"
+          ? "Modo automático activado."
+          : "Modo manual activado.";
+
+      await refreshStatus();
+    } catch (error) {
+      message.textContent = `Error: ${error.message}`;
+      console.error("Error al cambiar el modo:", error);
+
+      // Recuperar el modo real si el cambio fue rechazado.
+      await refreshStatus();
+    } finally {
+      changingMode = false;
+      selector.disabled = false;
+    }
+  }
+
+  document
+    .getElementById("mode-selector")
+    .addEventListener("change", changeControlMode);
+
 </script>
-  <script src="./js/api.js"></script>
+
 
 </body>
 
