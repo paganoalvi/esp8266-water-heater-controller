@@ -54,8 +54,8 @@ WaterHeaterConfig waterHeaterConfig =
   },
 
   2,
-  //MODE_MANUAL
-  MODE_AUTO
+  MODE_MANUAL
+  //MODE_AUTO
 };
 
 // ============================================================
@@ -457,22 +457,26 @@ server.begin();
 // LOOP
 // ============================================================
 
-// Loop principal 
+// Main Loop
 void loop()
 {
+  // Attend incoming HTTP requests as often as possible.
   server.handleClient();
 
-  timeClient.update();
+  // Update the clock and relay every 5 seconds.
+  static unsigned long previousUpdate = 0;
+  unsigned long currentMillis = millis();
 
-  updateCurrentTime();
+  if (currentMillis - previousUpdate >= LOOP_DELAY_MS)
+  {
+    previousUpdate = currentMillis;
 
-  updateRelay();
-
-  printSystemStatus();
-
-  delay(LOOP_DELAY_MS);
+    timeClient.update();
+    updateCurrentTime();
+    updateRelay();
+    printSystemStatus();
+  }
 }
-
 
 // Relay TESTING LOOP
 /*
