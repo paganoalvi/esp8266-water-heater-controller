@@ -446,6 +446,7 @@ server.on("/", handleRoot);
 server.on("/style.css", handleStyle);
 server.on("/api/control", HTTP_POST, handleControl);
 
+server.enableCORS(true);
 server.begin();
 
   Serial.println("Servidor web iniciado");
