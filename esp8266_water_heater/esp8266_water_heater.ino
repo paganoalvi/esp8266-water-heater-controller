@@ -1,7 +1,7 @@
+
 #include <ESP8266WiFi.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
-#include <LittleFS.h>
 #include <ESP8266WebServer.h>
 
 #include "secrets.h"
@@ -55,7 +55,7 @@ WaterHeaterConfig waterHeaterConfig =
 
   2,
   MODE_MANUAL
-  //MODE_AUTO
+  // MODE_AUTO
 };
 
 // ============================================================
@@ -87,7 +87,7 @@ NTPClient timeClient(
 );
 
 // ============================================================
-// WEB SERVER
+// WEB API SERVER
 // ============================================================
 
 ESP8266WebServer server(80);
@@ -110,12 +110,48 @@ struct CurrentTime
 
 CurrentTime currentTime;
 
+
+bool clockSynchronized = false;
+
 // ============================================================
-// TEST / SERIAL DATA
+// FUNCTION: formatTime
 // ============================================================
 
-int serialIndex;
-byte serialData[20];
+String formatTime(uint16_t minutes)
+{
+  char buffer[6];
+
+  snprintf(
+    buffer,
+    sizeof(buffer),
+    "%02u:%02u",
+    minutes / 60,
+    minutes % 60
+  );
+
+  return String(buffer);
+}
+
+// ============================================================
+// FUNCTION: formatCurrentTime
+// ============================================================
+
+String formatCurrentTime()
+{
+  char buffer[9];
+
+  snprintf(
+    buffer,
+    sizeof(buffer),
+    "%02u:%02u:%02u",
+    currentTime.hour,
+    currentTime.minute,
+    currentTime.second
+  );
+
+  return String(buffer);
+}
+
 
 // ============================================================
 // FUNCTION: setRelay
@@ -123,41 +159,13 @@ byte serialData[20];
 
 void setRelay(bool turnOn)
 {
+  // This assumes an active-LOW relay module.
   digitalWrite(
     RELAY_PIN,
     turnOn ? LOW : HIGH
   );
 
   waterHeaterState.relayIsOn = turnOn;
-}
-
-// ============================================================
-// FUNCTION: checkSerial
-// ============================================================
-
-void checkSerial()
-{
-  byte receptionFinished = 0;
-
-  serialIndex = 0;
-
-  if (Serial.available() > 0)
-  {
-    do
-    {
-      serialData[serialIndex] = Serial.read();
-
-      if (serialData[serialIndex] == 61)  // '='
-      {
-        receptionFinished = 1;
-      }
-
-      ++serialIndex;
-
-    } while (receptionFinished == 0);
-
-    Serial.print(serialIndex - 1, DEC);
-  }
 }
 
 // ============================================================
@@ -282,54 +290,129 @@ void printSystemStatus()
   );
 }
 
-// ============================================================
-// FUNCTION: handleRoot
-// ============================================================
 
-void handleRoot()
+ // ============================================================
+ // API HANDLER: GET /api/status
+ // ============================================================
+
+void handleStatus()
 {
-  File file = LittleFS.open("/index.html", "r");
+  uint16_t currentMinutes =
+    currentTime.minutesSinceMidnight();
 
-  if (!file)
+  bool scheduleActive =
+    shouldHeatAutomatically(currentMinutes);
+
+  String json = "{";
+
+  json += "\"relayIsOn\":";
+  json += waterHeaterState.relayIsOn ? "true" : "false";
+
+  json += ",\"mode\":\"";
+  json += waterHeaterConfig.controlMode == MODE_AUTO
+    ? "AUTO"
+    : "MANUAL";
+  json += "\"";
+
+  json += ",\"manualRelayState\":";
+  json += waterHeaterState.manualRelayState ? "true" : "false";
+
+  json += ",\"time\":\"";
+  json += formatCurrentTime();
+  json += "\"";
+
+  json += ",\"timeValid\":";
+  json += clockSynchronized ? "true" : "false";
+
+  json += ",\"scheduleActive\":";
+  json += scheduleActive ? "true" : "false";
+
+  json += ",\"schedules\":[";
+
+  for (
+    uint8_t i = 0;
+    i < waterHeaterConfig.scheduleCount;
+    i++
+  )
   {
-    server.send(
-      500,
-      "text/plain",
-      "No se pudo abrir index.html"
-    );
+    if (i > 0)
+    {
+      json += ",";
+    }
 
+    json += "{";
+
+    json += "\"start\":\"";
+    json += formatTime(
+      waterHeaterConfig.schedules[i].startMinutes
+    );
+    json += "\",";
+
+    json += "\"end\":\"";
+    json += formatTime(
+      waterHeaterConfig.schedules[i].endMinutes
+    );
+    json += "\"";
+    json += "}";
+  }
+
+  json += "]}";
+
+  server.send(
+    200,
+    "application/json",
+    json
+  );
+}
+
+
+// ============================================================
+// API HANDLER: POST /api/control
+// ============================================================
+
+// Handle Mode (Auto or Manual)
+void handleMode()
+{
+  if (!server.hasArg("mode"))
+  {
+    server.send(400, "application/json",
+                "{\"error\":\"Falta el parametro mode\"}");
     return;
   }
 
-  server.streamFile(file, "text/html");
+  String requestedMode = server.arg("mode");
 
-  file.close();
-}
-
-void handleStyle()
-{
-  File file = LittleFS.open("/style.css", "r");
-
-  if (!file)
+  if (requestedMode == "AUTO")
   {
-    server.send(
-      500,
-      "text/plain",
-      "No se pudo abrir style.css"
-    );
+    // No activar el modo automatico sin hora sincronizada.
+    if (!clockSynchronized)
+    {
+      server.send(409, "application/json",
+                  "{\"error\":\"El reloj todavia no esta sincronizado\"}");
+      return;
+    }
 
+    waterHeaterConfig.controlMode = MODE_AUTO;
+  }
+  else if (requestedMode == "MANUAL")
+  {
+    waterHeaterConfig.controlMode = MODE_MANUAL;
+
+    // Al entrar en modo manual, comenzar con el rele apagado.
+    waterHeaterState.manualRelayState = false;
+  }
+  else
+  {
+    server.send(400, "application/json",
+                "{\"error\":\"Modo invalido\"}");
     return;
   }
 
-  server.streamFile(file, "text/css");
+  updateRelay();
 
-  file.close();
+  server.send(200, "application/json",
+              "{\"ok\":true}");
 }
-
-
-// ============================================================
-// FUNCTION: handleControl
-// ============================================================
 
 void handleControl()
 {
@@ -403,6 +486,7 @@ void setup()
 {
   Serial.begin(9600);
 
+  // Initialize relay.
   pinMode(RELAY_PIN, OUTPUT);
 
   // Initial state: OFF.
@@ -418,6 +502,10 @@ void setup()
   setRelay(false);
   */
 
+  // ==========================================================
+  // WI-FI
+  // ==========================================================
+
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   while (WiFi.status() != WL_CONNECTED)
@@ -426,30 +514,27 @@ void setup()
     Serial.print(".");
   }
 
+  Serial.println();
+  Serial.println("Wi-Fi conectado");
+
+  // ==========================================================
+  // NTP
+  // ==========================================================
+
   timeClient.begin();
 
   // ==========================================================
-  // LITTLEFS
+  // WEB API
   // ==========================================================
 
-  if (!LittleFS.begin())
-  {
-    Serial.println("Error al montar LittleFS");
-    return;
-  }
+  server.on("/api/status",HTTP_GET,handleStatus);
+  server.on("/api/control",HTTP_POST,handleControl);
+  server.on("/api/mode", HTTP_POST, handleMode);
 
-  // ==========================================================
-  // WEB SERVER
-  // ==========================================================
+  server.enableCORS(true);
+  server.begin();
 
-server.on("/", handleRoot);
-server.on("/style.css", handleStyle);
-server.on("/api/control", HTTP_POST, handleControl);
-
-server.enableCORS(true);
-server.begin();
-
-  Serial.println("Servidor web iniciado");
+  Serial.println("API web iniciada");
   Serial.print("IP: ");
   Serial.println(WiFi.localIP());
 }
@@ -458,10 +543,9 @@ server.begin();
 // LOOP
 // ============================================================
 
-// Main Loop
 void loop()
 {
-  // Attend incoming HTTP requests as often as possible.
+  // Handle incoming HTTP requests as often as possible.
   server.handleClient();
 
   // Update the clock and relay every 5 seconds.
@@ -472,14 +556,21 @@ void loop()
   {
     previousUpdate = currentMillis;
 
-    timeClient.update();
+    if (timeClient.update())
+    {
+      clockSynchronized = true;
+    }
+
     updateCurrentTime();
     updateRelay();
     printSystemStatus();
   }
 }
 
-// Relay TESTING LOOP
+// ============================================================
+// RELAY TESTING LOOP
+// ============================================================
+
 /*
 void loop()
 {
