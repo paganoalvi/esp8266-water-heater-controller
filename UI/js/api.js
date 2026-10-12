@@ -54,3 +54,31 @@ async function setControlMode(mode) {
 
   return await response.json();
 }
+
+
+
+async function saveSchedules(schedules) {
+  const body = new URLSearchParams();
+  body.set("count", String(schedules.length));
+
+  schedules.forEach((schedule, index) => {
+    body.set(`start${index}`, schedule.start);
+    body.set(`end${index}`, schedule.end);
+  });
+
+  const response = await fetch(`${ESP8266_API_URL}/api/schedules`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(result.error || "No se pudieron guardar los horarios");
+  }
+
+  return result;
+}

@@ -525,3 +525,139 @@
   #mode-message.error {
     color: var(--green);
   }
+
+
+
+/* Editor de horarios */
+.schedule-editor {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.schedule-edit-row {
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.schedule-edit-heading {
+  margin-bottom: 12px;
+  color: var(--green);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.schedule-edit-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.schedule-edit-fields label {
+  display: grid;
+  gap: 7px;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.schedule-edit-fields input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 11px 8px;
+
+  color: var(--green);
+  color-scheme: dark;
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+
+  font: inherit;
+  font-size: 1rem;
+}
+
+.schedule-edit-fields input:focus-visible {
+  outline: 1px solid var(--green);
+  border-color: var(--green);
+}
+
+.schedule-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.schedule-actions button,
+.remove-schedule-button {
+  padding: 11px 14px;
+  color: var(--green);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+#save-schedules-button {
+  background: var(--green-dark);
+  border-color: var(--green-dark);
+  color: var(--background);
+}
+
+.schedule-actions button:hover,
+.remove-schedule-button:hover {
+  background: var(--surface-light);
+  border-color: var(--green-dim);
+}
+
+#save-schedules-button:hover {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.schedule-actions button:disabled,
+.remove-schedule-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.remove-schedule-button {
+  margin-top: 12px;
+  padding: 7px 10px;
+  font-size: 0.85rem;
+}
+
+#schedule-message {
+  margin-top: 10px;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+#schedule-message.error {
+  color: #ff7070;
+}
+
+@media (max-width: 420px) {
+  .schedule-edit-row {
+    padding: 11px;
+  }
+
+  .schedule-edit-fields {
+    gap: 8px;
+  }
+
+  .schedule-actions {
+    flex-direction: column;
+  }
+
+  .schedule-actions button {
+    width: 100%;
+  }
+}
+

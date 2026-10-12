@@ -114,9 +114,27 @@
     <span>&gt; HORARIOS</span>
   </div>
 
-  <div class="schedule-list" id="schedule-list">
-    <!-- Los horarios se generan desde JavaScript -->
-  </div>
+  
+<div class="schedule-list" id="schedule-list">
+  <!-- Los horarios actuales se muestran aquí -->
+</div>
+
+<div class="schedule-editor" id="schedule-editor">
+  <!-- El editor se genera desde JavaScript -->
+</div>
+
+<div class="schedule-actions">
+  <button type="button" id="add-schedule-button">
+    + Agregar horario
+  </button>
+
+  <button type="button" id="save-schedules-button">
+    Aplicar horarios
+  </button>
+</div>
+
+<p id="schedule-message" role="status" aria-live="polite"></p>
+
 
 </section>
 
@@ -208,6 +226,9 @@
         row.append(number, time, state);
         scheduleList.appendChild(row);
       });
+      if (!schedulesBeingEdited) {
+        renderScheduleEditor(status.schedules);
+      }
 
     } catch (error) {
       console.error("Error al consultar el estado:", error);
@@ -257,8 +278,171 @@
     .getElementById("mode-selector")
     .addEventListener("change", changeControlMode);
 
-</script>
+  
+let schedulesBeingEdited = false;
 
+function renderScheduleEditor(schedules) {
+  const editor = document.getElementById("schedule-editor");
+  editor.replaceChildren();
+
+  schedules.forEach((schedule, index) => {
+    const row = document.createElement("div");
+    row.className = "schedule-edit-row";
+
+    const heading = document.createElement("div");
+    heading.className = "schedule-edit-heading";
+    heading.textContent = `Horario ${index + 1}`;
+
+    const fields = document.createElement("div");
+    fields.className = "schedule-edit-fields";
+
+    const startLabel = document.createElement("label");
+    startLabel.textContent = "Desde";
+
+    const startInput = document.createElement("input");
+    startInput.type = "time";
+    startInput.className = "schedule-start";
+    startInput.value = schedule.start;
+    startInput.required = true;
+    startInput.setAttribute("aria-label", `Inicio del horario ${index + 1}`);
+
+    startLabel.appendChild(startInput);
+
+    const endLabel = document.createElement("label");
+    endLabel.textContent = "Hasta";
+
+    const endInput = document.createElement("input");
+    endInput.type = "time";
+    endInput.className = "schedule-end";
+    endInput.value = schedule.end;
+    endInput.required = true;
+    endInput.setAttribute("aria-label", `Fin del horario ${index + 1}`);
+
+    endLabel.appendChild(endInput);
+
+    fields.append(startLabel, endLabel);
+    row.append(heading, fields);
+
+    if (schedules.length > 1) {
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "remove-schedule-button";
+      removeButton.textContent = "Quitar";
+      removeButton.addEventListener("click", () => {
+        const updated = readScheduleEditor();
+        updated.splice(index, 1);
+        schedulesBeingEdited = true;
+        renderScheduleEditor(updated);
+      });
+
+      row.appendChild(removeButton);
+    }
+
+    editor.appendChild(row);
+  });
+
+  document.getElementById("add-schedule-button").disabled =
+    schedules.length >= 4;
+}
+
+function readScheduleEditor() {
+  const rows = [
+    ...document.querySelectorAll(".schedule-edit-row")
+  ];
+
+  return rows.map(row => ({
+    start: row.querySelector(".schedule-start").value,
+    end: row.querySelector(".schedule-end").value
+  }));
+}
+
+function validateSchedules(schedules) {
+  if (schedules.length < 1 || schedules.length > 4) {
+    return "Tenés que configurar entre 1 y 4 horarios.";
+  }
+
+  for (const schedule of schedules) {
+    if (!schedule.start || !schedule.end) {
+      return "Completá el inicio y el fin de cada horario.";
+    }
+
+    if (schedule.start >= schedule.end) {
+      return "La hora de inicio debe ser anterior a la hora de fin.";
+    }
+  }
+
+  const sorted = [...schedules].sort((a, b) =>
+    a.start.localeCompare(b.start)
+  );
+
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i].start < sorted[i - 1].end) {
+      return "Los horarios no pueden superponerse.";
+    }
+  }
+
+  return null;
+}
+
+async function applySchedules() {
+  const message = document.getElementById("schedule-message");
+  const saveButton = document.getElementById("save-schedules-button");
+  const addButton = document.getElementById("add-schedule-button");
+  const schedules = readScheduleEditor();
+
+  const validationError = validateSchedules(schedules);
+
+  if (validationError) {
+    message.textContent = validationError;
+    message.classList.add("error");
+    return;
+  }
+
+  saveButton.disabled = true;
+  addButton.disabled = true;
+  message.classList.remove("error");
+  message.textContent = "Aplicando horarios...";
+
+  try {
+    await saveSchedules(schedules);
+
+    schedulesBeingEdited = false;
+    message.textContent = "Horarios actualizados correctamente.";
+
+    await refreshStatus();
+  } catch (error) {
+    message.textContent = `Error: ${error.message}`;
+    message.classList.add("error");
+    console.error("Error al aplicar horarios:", error);
+  } finally {
+    saveButton.disabled = false;
+    addButton.disabled = readScheduleEditor().length >= 4;
+  }
+}
+
+document.getElementById("schedule-editor").addEventListener("input", () => {
+  schedulesBeingEdited = true;
+  document.getElementById("schedule-message").textContent =
+    "Tenés cambios sin aplicar.";
+  document.getElementById("schedule-message").classList.remove("error");
+});
+
+document.getElementById("add-schedule-button").addEventListener("click", () => {
+  const schedules = readScheduleEditor();
+
+  if (schedules.length >= 4) return;
+
+  schedules.push({ start: "", end: "" });
+  schedulesBeingEdited = true;
+  renderScheduleEditor(schedules);
+});
+
+document.getElementById("save-schedules-button").addEventListener(
+  "click",
+  applySchedules
+);
+
+</script>
 
 </body>
 
