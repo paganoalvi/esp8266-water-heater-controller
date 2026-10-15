@@ -35,14 +35,12 @@ const size_t EEPROM_SIZE = 512;
 // TYPES
 // ============================================================
 
-struct Schedule
-{
+struct Schedule {
   uint16_t startMinutes;
   uint16_t endMinutes;
 };
 
-enum ControlMode
-{
+enum ControlMode {
   MODE_AUTO,
   MODE_MANUAL
 };
@@ -51,21 +49,17 @@ enum ControlMode
 // WATER HEATER CONFIGURATION
 // ============================================================
 
-struct WaterHeaterConfig
-{
+struct WaterHeaterConfig {
   Schedule schedules[4];
   uint8_t scheduleCount;
   ControlMode controlMode;
 };
 
-WaterHeaterConfig waterHeaterConfig =
-{
-  {
-    {360, 420},       // 06:00 - 07:00
-    {1080, 1140},     // 18:00 - 19:00
-    {0, 0},
-    {0, 0}
-  },
+WaterHeaterConfig waterHeaterConfig = {
+  { { 360, 420 },    // 06:00 - 07:00
+    { 1080, 1140 },  // 18:00 - 19:00
+    { 0, 0 },
+    { 0, 0 } },
 
   2,
   MODE_MANUAL
@@ -76,14 +70,12 @@ WaterHeaterConfig waterHeaterConfig =
 // WATER HEATER STATE
 // ============================================================
 
-struct WaterHeaterState
-{
+struct WaterHeaterState {
   bool manualRelayState;
   bool relayIsOn;
 };
 
-WaterHeaterState waterHeaterState =
-{
+WaterHeaterState waterHeaterState = {
   false,
   false
 };
@@ -92,8 +84,7 @@ WaterHeaterState waterHeaterState =
 // PERSISTENT DATA FORMAT
 // ============================================================
 
-struct PersistentConfig
-{
+struct PersistentConfig {
   uint32_t magic;
   uint8_t version;
   uint8_t scheduleCount;
@@ -110,8 +101,7 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(
   ntpUDP,
   "pool.ntp.org",
-  UTC_OFFSET_SECONDS
-);
+  UTC_OFFSET_SECONDS);
 
 // ============================================================
 // WEB API SERVER
@@ -123,19 +113,17 @@ ESP8266WebServer server(80);
 // CURRENT TIME
 // ============================================================
 
-struct CurrentTime
-{
+struct CurrentTime {
   byte hour;
   byte minute;
   byte second;
 
-  uint16_t minutesSinceMidnight() const
-  {
+  uint16_t minutesSinceMidnight() const {
     return hour * 60 + minute;
   }
 };
 
-CurrentTime currentTime = {0, 0, 0};
+CurrentTime currentTime = { 0, 0, 0 };
 
 bool clockSynchronized = false;
 
@@ -143,8 +131,7 @@ bool clockSynchronized = false;
 // FUNCTION: formatTime
 // ============================================================
 
-String formatTime(uint16_t minutes)
-{
+String formatTime(uint16_t minutes) {
   char buffer[6];
 
   snprintf(
@@ -152,8 +139,7 @@ String formatTime(uint16_t minutes)
     sizeof(buffer),
     "%02u:%02u",
     minutes / 60,
-    minutes % 60
-  );
+    minutes % 60);
 
   return String(buffer);
 }
@@ -162,8 +148,7 @@ String formatTime(uint16_t minutes)
 // FUNCTION: formatCurrentTime
 // ============================================================
 
-String formatCurrentTime()
-{
+String formatCurrentTime() {
   char buffer[9];
 
   snprintf(
@@ -172,8 +157,7 @@ String formatCurrentTime()
     "%02u:%02u:%02u",
     currentTime.hour,
     currentTime.minute,
-    currentTime.second
-  );
+    currentTime.second);
 
   return String(buffer);
 }
@@ -182,13 +166,11 @@ String formatCurrentTime()
 // FUNCTION: setRelay
 // ============================================================
 
-void setRelay(bool turnOn)
-{
+void setRelay(bool turnOn) {
   // Assumes an active-LOW relay module.
   digitalWrite(
     RELAY_PIN,
-    turnOn ? LOW : HIGH
-  );
+    turnOn ? LOW : HIGH);
 
   waterHeaterState.relayIsOn = turnOn;
 }
@@ -199,34 +181,24 @@ void setRelay(bool turnOn)
 
 bool isScheduleActive(
   const Schedule& schedule,
-  uint16_t currentMinutes
-)
-{
+  uint16_t currentMinutes) {
   return (
-    currentMinutes >= schedule.startMinutes &&
-    currentMinutes < schedule.endMinutes
-  );
+    currentMinutes >= schedule.startMinutes && currentMinutes < schedule.endMinutes);
 }
 
 // ============================================================
 // FUNCTION: shouldHeatAutomatically
 // ============================================================
 
-bool shouldHeatAutomatically(uint16_t currentMinutes)
-{
+bool shouldHeatAutomatically(uint16_t currentMinutes) {
   for (
     uint8_t i = 0;
     i < waterHeaterConfig.scheduleCount;
-    i++
-  )
-  {
+    i++) {
     if (
       isScheduleActive(
         waterHeaterConfig.schedules[i],
-        currentMinutes
-      )
-    )
-    {
+        currentMinutes)) {
       return true;
     }
   }
@@ -238,16 +210,13 @@ bool shouldHeatAutomatically(uint16_t currentMinutes)
 // FUNCTION: shouldRelayBeOn
 // ============================================================
 
-bool shouldRelayBeOn(uint16_t currentMinutes)
-{
-  if (waterHeaterConfig.controlMode == MODE_MANUAL)
-  {
+bool shouldRelayBeOn(uint16_t currentMinutes) {
+  if (waterHeaterConfig.controlMode == MODE_MANUAL) {
     return waterHeaterState.manualRelayState;
   }
 
   // Never activate automatic heating without a valid clock.
-  if (!clockSynchronized)
-  {
+  if (!clockSynchronized) {
     return false;
   }
 
@@ -258,8 +227,7 @@ bool shouldRelayBeOn(uint16_t currentMinutes)
 // FUNCTION: updateCurrentTime
 // ============================================================
 
-void updateCurrentTime()
-{
+void updateCurrentTime() {
   currentTime.hour = timeClient.getHours();
   currentTime.minute = timeClient.getMinutes();
   currentTime.second = timeClient.getSeconds();
@@ -269,8 +237,7 @@ void updateCurrentTime()
 // FUNCTION: updateRelay
 // ============================================================
 
-void updateRelay()
-{
+void updateRelay() {
   uint16_t currentMinutes =
     currentTime.minutesSinceMidnight();
 
@@ -284,82 +251,62 @@ void updateRelay()
 // FUNCTION: printSystemStatus
 // ============================================================
 
-void printSystemStatus()
-{
+void printSystemStatus() {
   uint16_t currentMinutes =
     currentTime.minutesSinceMidnight();
 
   bool scheduleActive =
-    clockSynchronized &&
-    shouldHeatAutomatically(currentMinutes);
+    clockSynchronized && shouldHeatAutomatically(currentMinutes);
 
   Serial.print("Time: ");
 
-  if (clockSynchronized)
-  {
+  if (clockSynchronized) {
     Serial.print(formatCurrentTime());
-  }
-  else
-  {
+  } else {
     Serial.print("NOT SYNCED");
   }
 
   Serial.print(" | Relay: ");
   Serial.print(
-    waterHeaterState.relayIsOn ? "ON" : "OFF"
-  );
+    waterHeaterState.relayIsOn ? "ON" : "OFF");
 
   Serial.print(" | Mode: ");
   Serial.print(
     waterHeaterConfig.controlMode == MODE_AUTO
       ? "AUTO"
-      : "MANUAL"
-  );
+      : "MANUAL");
 
   Serial.print(" | Schedule: ");
   Serial.println(
-    scheduleActive ? "ACTIVE" : "INACTIVE"
-  );
+    scheduleActive ? "ACTIVE" : "INACTIVE");
 }
 
 // ============================================================
 // FUNCTION: isValidPersistentConfig
 // ============================================================
 
-bool isValidPersistentConfig(const PersistentConfig& config)
-{
+bool isValidPersistentConfig(const PersistentConfig& config) {
   if (
-    config.magic != CONFIG_MAGIC ||
-    config.version != CONFIG_VERSION ||
-    config.scheduleCount < 1 ||
-    config.scheduleCount > 4 ||
-    config.controlMode > MODE_MANUAL
-  )
-  {
+    config.magic != CONFIG_MAGIC || config.version != CONFIG_VERSION || config.scheduleCount < 1 || config.scheduleCount > 4 || config.controlMode > MODE_MANUAL) {
     return false;
   }
 
-  for (uint8_t i = 0; i < config.scheduleCount; i++)
-  {
+  for (uint8_t i = 0; i < config.scheduleCount; i++) {
     uint16_t start =
       config.schedules[i].startMinutes;
 
     uint16_t end =
       config.schedules[i].endMinutes;
 
-    if (start >= end || end > 1439)
-    {
+    if (start >= end || end > 1439) {
       return false;
     }
 
-    for (uint8_t j = 0; j < i; j++)
-    {
+    for (uint8_t j = 0; j < i; j++) {
       bool overlaps =
-        start < config.schedules[j].endMinutes &&
-        config.schedules[j].startMinutes < end;
+        start < config.schedules[j].endMinutes && config.schedules[j].startMinutes < end;
 
-      if (overlaps)
-      {
+      if (overlaps) {
         return false;
       }
     }
@@ -372,8 +319,7 @@ bool isValidPersistentConfig(const PersistentConfig& config)
 // FUNCTION: saveConfiguration
 // ============================================================
 
-bool saveConfiguration()
-{
+bool saveConfiguration() {
   PersistentConfig config = {};
 
   config.magic = CONFIG_MAGIC;
@@ -381,31 +327,26 @@ bool saveConfiguration()
   config.scheduleCount =
     waterHeaterConfig.scheduleCount;
 
-  for (uint8_t i = 0; i < 4; i++)
-  {
+  for (uint8_t i = 0; i < 4; i++) {
     config.schedules[i] =
       waterHeaterConfig.schedules[i];
   }
 
   config.controlMode =
     static_cast<uint8_t>(
-      waterHeaterConfig.controlMode
-    );
+      waterHeaterConfig.controlMode);
 
   EEPROM.put(0, config);
 
-  if (!EEPROM.commit())
-  {
+  if (!EEPROM.commit()) {
     Serial.println(
-      "ERROR: No se pudo guardar la configuracion"
-    );
+      "ERROR: No se pudo guardar la configuracion");
 
     return false;
   }
 
   Serial.println(
-    "Configuracion guardada en memoria"
-  );
+    "Configuracion guardada en memoria");
 
   return true;
 }
@@ -414,18 +355,15 @@ bool saveConfiguration()
 // FUNCTION: loadConfiguration
 // ============================================================
 
-bool loadConfiguration()
-{
+bool loadConfiguration() {
   PersistentConfig config = {};
 
   EEPROM.get(0, config);
 
-  if (!isValidPersistentConfig(config))
-  {
+  if (!isValidPersistentConfig(config)) {
     Serial.println(
       "No hay configuracion valida guardada; "
-      "se usan los valores iniciales del firmware"
-    );
+      "se usan los valores iniciales del firmware");
 
     return false;
   }
@@ -433,23 +371,20 @@ bool loadConfiguration()
   waterHeaterConfig.scheduleCount =
     config.scheduleCount;
 
-  for (uint8_t i = 0; i < 4; i++)
-  {
+  for (uint8_t i = 0; i < 4; i++) {
     waterHeaterConfig.schedules[i] =
       config.schedules[i];
   }
 
   waterHeaterConfig.controlMode =
     static_cast<ControlMode>(
-      config.controlMode
-    );
+      config.controlMode);
 
   // Never restore a previous manual ON state.
   waterHeaterState.manualRelayState = false;
 
   Serial.println(
-    "Configuracion cargada desde memoria"
-  );
+    "Configuracion cargada desde memoria");
 
   return true;
 }
@@ -458,14 +393,12 @@ bool loadConfiguration()
 // API HANDLER: GET /api/status
 // ============================================================
 
-void handleStatus()
-{
+void handleStatus() {
   uint16_t currentMinutes =
     currentTime.minutesSinceMidnight();
 
   bool scheduleActive =
-    clockSynchronized &&
-    shouldHeatAutomatically(currentMinutes);
+    clockSynchronized && shouldHeatAutomatically(currentMinutes);
 
   String json = "{";
 
@@ -500,11 +433,8 @@ void handleStatus()
   for (
     uint8_t i = 0;
     i < waterHeaterConfig.scheduleCount;
-    i++
-  )
-  {
-    if (i > 0)
-    {
+    i++) {
+    if (i > 0) {
       json += ",";
     }
 
@@ -512,14 +442,12 @@ void handleStatus()
 
     json += "\"start\":\"";
     json += formatTime(
-      waterHeaterConfig.schedules[i].startMinutes
-    );
+      waterHeaterConfig.schedules[i].startMinutes);
     json += "\",";
 
     json += "\"end\":\"";
     json += formatTime(
-      waterHeaterConfig.schedules[i].endMinutes
-    );
+      waterHeaterConfig.schedules[i].endMinutes);
     json += "\"";
 
     json += "}";
@@ -530,23 +458,19 @@ void handleStatus()
   server.send(
     200,
     "application/json",
-    json
-  );
+    json);
 }
 
 // ============================================================
 // API HANDLER: POST /api/mode
 // ============================================================
 
-void handleMode()
-{
-  if (!server.hasArg("mode"))
-  {
+void handleMode() {
+  if (!server.hasArg("mode")) {
     server.send(
       400,
       "application/json",
-      "{\"error\":\"Falta el parametro mode\"}"
-    );
+      "{\"error\":\"Falta el parametro mode\"}");
 
     return;
   }
@@ -554,29 +478,21 @@ void handleMode()
   String requestedMode = server.arg("mode");
 
   if (
-    requestedMode == "AUTO" &&
-    !clockSynchronized
-  )
-  {
+    requestedMode == "AUTO" && !clockSynchronized) {
     server.send(
       409,
       "application/json",
-      "{\"error\":\"El reloj todavia no esta sincronizado\"}"
-    );
+      "{\"error\":\"El reloj todavia no esta sincronizado\"}");
 
     return;
   }
 
   if (
-    requestedMode != "AUTO" &&
-    requestedMode != "MANUAL"
-  )
-  {
+    requestedMode != "AUTO" && requestedMode != "MANUAL") {
     server.send(
       400,
       "application/json",
-      "{\"error\":\"Modo invalido\"}"
-    );
+      "{\"error\":\"Modo invalido\"}");
 
     return;
   }
@@ -587,20 +503,16 @@ void handleMode()
   bool previousManualState =
     waterHeaterState.manualRelayState;
 
-  if (requestedMode == "AUTO")
-  {
+  if (requestedMode == "AUTO") {
     waterHeaterConfig.controlMode = MODE_AUTO;
-  }
-  else
-  {
+  } else {
     waterHeaterConfig.controlMode = MODE_MANUAL;
 
     // Enter manual mode with the relay OFF.
     waterHeaterState.manualRelayState = false;
   }
 
-  if (!saveConfiguration())
-  {
+  if (!saveConfiguration()) {
     waterHeaterConfig.controlMode = previousMode;
 
     waterHeaterState.manualRelayState =
@@ -611,8 +523,7 @@ void handleMode()
     server.send(
       500,
       "application/json",
-      "{\"error\":\"No se pudo guardar la configuracion\"}"
-    );
+      "{\"error\":\"No se pudo guardar la configuracion\"}");
 
     return;
   }
@@ -622,8 +533,7 @@ void handleMode()
   server.send(
     200,
     "application/json",
-    "{\"ok\":true}"
-  );
+    "{\"ok\":true}");
 }
 
 // ============================================================
@@ -632,42 +542,25 @@ void handleMode()
 
 bool parseTimeValue(
   String value,
-  uint16_t &minutes
-)
-{
+  uint16_t& minutes) {
   // Expected format: HH:MM.
   if (
-    value.length() != 5 ||
-    value.charAt(2) != ':'
-  )
-  {
+    value.length() != 5 || value.charAt(2) != ':') {
     return false;
   }
 
   if (
-    value.charAt(0) < '0' ||
-    value.charAt(0) > '9' ||
-    value.charAt(1) < '0' ||
-    value.charAt(1) > '9' ||
-    value.charAt(3) < '0' ||
-    value.charAt(3) > '9' ||
-    value.charAt(4) < '0' ||
-    value.charAt(4) > '9'
-  )
-  {
+    value.charAt(0) < '0' || value.charAt(0) > '9' || value.charAt(1) < '0' || value.charAt(1) > '9' || value.charAt(3) < '0' || value.charAt(3) > '9' || value.charAt(4) < '0' || value.charAt(4) > '9') {
     return false;
   }
 
   uint8_t hour =
-    (value.charAt(0) - '0') * 10 +
-    (value.charAt(1) - '0');
+    (value.charAt(0) - '0') * 10 + (value.charAt(1) - '0');
 
   uint8_t minute =
-    (value.charAt(3) - '0') * 10 +
-    (value.charAt(4) - '0');
+    (value.charAt(3) - '0') * 10 + (value.charAt(4) - '0');
 
-  if (hour > 23 || minute > 59)
-  {
+  if (hour > 23 || minute > 59) {
     return false;
   }
 
@@ -680,15 +573,12 @@ bool parseTimeValue(
 // API HANDLER: POST /api/schedules
 // ============================================================
 
-void handleSchedules()
-{
-  if (!server.hasArg("count"))
-  {
+void handleSchedules() {
+  if (!server.hasArg("count")) {
     server.send(
       400,
       "application/json",
-      "{\"error\":\"Falta la cantidad de horarios\"}"
-    );
+      "{\"error\":\"Falta la cantidad de horarios\"}");
 
     return;
   }
@@ -696,16 +586,11 @@ void handleSchedules()
   String countValue = server.arg("count");
 
   if (
-    countValue.length() != 1 ||
-    countValue.charAt(0) < '1' ||
-    countValue.charAt(0) > '4'
-  )
-  {
+    countValue.length() != 1 || countValue.charAt(0) < '1' || countValue.charAt(0) > '4') {
     server.send(
       400,
       "application/json",
-      "{\"error\":\"Debe haber entre 1 y 4 horarios\"}"
-    );
+      "{\"error\":\"Debe haber entre 1 y 4 horarios\"}");
 
     return;
   }
@@ -716,21 +601,16 @@ void handleSchedules()
   Schedule requestedSchedules[4];
 
   // Validate all requested schedules first.
-  for (uint8_t i = 0; i < requestedCount; i++)
-  {
+  for (uint8_t i = 0; i < requestedCount; i++) {
     String startName = "start" + String(i);
     String endName = "end" + String(i);
 
     if (
-      !server.hasArg(startName) ||
-      !server.hasArg(endName)
-    )
-    {
+      !server.hasArg(startName) || !server.hasArg(endName)) {
       server.send(
         400,
         "application/json",
-        "{\"error\":\"Falta una hora de inicio o fin\"}"
-      );
+        "{\"error\":\"Falta una hora de inicio o fin\"}");
 
       return;
     }
@@ -738,54 +618,39 @@ void handleSchedules()
     if (
       !parseTimeValue(
         server.arg(startName),
-        requestedSchedules[i].startMinutes
-      ) ||
-      !parseTimeValue(
+        requestedSchedules[i].startMinutes)
+      || !parseTimeValue(
         server.arg(endName),
-        requestedSchedules[i].endMinutes
-      )
-    )
-    {
+        requestedSchedules[i].endMinutes)) {
       server.send(
         400,
         "application/json",
-        "{\"error\":\"Formato de hora invalido\"}"
-      );
+        "{\"error\":\"Formato de hora invalido\"}");
 
       return;
     }
 
     // Overnight schedules are not supported.
     if (
-      requestedSchedules[i].startMinutes >=
-      requestedSchedules[i].endMinutes
-    )
-    {
+      requestedSchedules[i].startMinutes >= requestedSchedules[i].endMinutes) {
       server.send(
         400,
         "application/json",
-        "{\"error\":\"El inicio debe ser anterior al fin\"}"
-      );
+        "{\"error\":\"El inicio debe ser anterior al fin\"}");
 
       return;
     }
 
     // Reject overlapping schedules.
-    for (uint8_t j = 0; j < i; j++)
-    {
+    for (uint8_t j = 0; j < i; j++) {
       bool overlaps =
-        requestedSchedules[i].startMinutes <
-          requestedSchedules[j].endMinutes &&
-        requestedSchedules[j].startMinutes <
-          requestedSchedules[i].endMinutes;
+        requestedSchedules[i].startMinutes < requestedSchedules[j].endMinutes && requestedSchedules[j].startMinutes < requestedSchedules[i].endMinutes;
 
-      if (overlaps)
-      {
+      if (overlaps) {
         server.send(
           400,
           "application/json",
-          "{\"error\":\"Los horarios no pueden superponerse\"}"
-        );
+          "{\"error\":\"Los horarios no pueden superponerse\"}");
 
         return;
       }
@@ -798,15 +663,13 @@ void handleSchedules()
   uint8_t previousCount =
     waterHeaterConfig.scheduleCount;
 
-  for (uint8_t i = 0; i < 4; i++)
-  {
+  for (uint8_t i = 0; i < 4; i++) {
     previousSchedules[i] =
       waterHeaterConfig.schedules[i];
   }
 
   // Apply the validated configuration.
-  for (uint8_t i = 0; i < requestedCount; i++)
-  {
+  for (uint8_t i = 0; i < requestedCount; i++) {
     waterHeaterConfig.schedules[i] =
       requestedSchedules[i];
   }
@@ -814,10 +677,8 @@ void handleSchedules()
   waterHeaterConfig.scheduleCount =
     requestedCount;
 
-  if (!saveConfiguration())
-  {
-    for (uint8_t i = 0; i < 4; i++)
-    {
+  if (!saveConfiguration()) {
+    for (uint8_t i = 0; i < 4; i++) {
       waterHeaterConfig.schedules[i] =
         previousSchedules[i];
     }
@@ -830,8 +691,7 @@ void handleSchedules()
     server.send(
       500,
       "application/json",
-      "{\"error\":\"No se pudo guardar la configuracion\"}"
-    );
+      "{\"error\":\"No se pudo guardar la configuracion\"}");
 
     return;
   }
@@ -841,65 +701,55 @@ void handleSchedules()
   server.send(
     200,
     "application/json",
-    "{\"ok\":true}"
-  );
+    "{\"ok\":true}");
 }
 
 // ============================================================
 // API HANDLER: POST /api/control
 // ============================================================
 
-void handleControl()
-{
+void handleControl() {
   // Manual control is only allowed in MANUAL mode.
-  if (waterHeaterConfig.controlMode != MODE_MANUAL)
-  {
+  if (waterHeaterConfig.controlMode != MODE_MANUAL) {
     server.send(
       409,
       "text/plain",
-      "Control manual no disponible en modo AUTO"
-    );
+      "Control manual no disponible en modo AUTO");
 
     return;
   }
 
-  if (!server.hasArg("state"))
-  {
+  if (!server.hasArg("state")) {
     server.send(
       400,
       "text/plain",
-      "Falta el parametro 'state'"
-    );
+      "Falta el parametro 'state'");
 
     return;
   }
 
   String requestedState = server.arg("state");
 
-  if (requestedState == "on")
-  {
+  if (requestedState == "on") {
     waterHeaterState.manualRelayState = true;
     setRelay(true);
 
     server.send(
       200,
       "text/plain",
-      "Relay ON"
-    );
+      "Relay ON");
 
     return;
   }
 
-  if (requestedState == "off")
-  {
+  if (requestedState == "off") {
     waterHeaterState.manualRelayState = false;
     setRelay(false);
 
     server.send(
       200,
       "text/plain",
-      "Relay OFF"
-    );
+      "Relay OFF");
 
     return;
   }
@@ -907,16 +757,14 @@ void handleControl()
   server.send(
     400,
     "text/plain",
-    "Valor de 'state' invalido. Use 'on' o 'off'"
-  );
+    "Valor de 'state' invalido. Use 'on' o 'off'");
 }
 
 // ============================================================
 // SETUP
 // ============================================================
 
-void setup()
-{
+void setup() {
   Serial.begin(9600);
 
   // Configure the relay and establish the initial OFF state.
@@ -944,8 +792,7 @@ void setup()
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  while (WiFi.status() != WL_CONNECTED)
-  {
+  while (WiFi.status() != WL_CONNECTED) {
     // Keep the relay OFF while waiting for Wi-Fi.
     setRelay(false);
 
@@ -964,20 +811,16 @@ void setup()
 
   // Attempt initial synchronization instead of waiting
   // for the periodic update interval.
-  if (timeClient.forceUpdate())
-  {
+  if (timeClient.forceUpdate()) {
     clockSynchronized = true;
     updateCurrentTime();
 
     Serial.println("Hora sincronizada correctamente");
-  }
-  else
-  {
+  } else {
     clockSynchronized = false;
 
     Serial.println(
-      "ADVERTENCIA: no se pudo sincronizar la hora"
-    );
+      "ADVERTENCIA: no se pudo sincronizar la hora");
   }
 
   // Do not activate AUTO mode until the clock is valid.
@@ -990,26 +833,22 @@ void setup()
   server.on(
     "/api/status",
     HTTP_GET,
-    handleStatus
-  );
+    handleStatus);
 
   server.on(
     "/api/control",
     HTTP_POST,
-    handleControl
-  );
+    handleControl);
 
   server.on(
     "/api/mode",
     HTTP_POST,
-    handleMode
-  );
+    handleMode);
 
   server.on(
     "/api/schedules",
     HTTP_POST,
-    handleSchedules
-  );
+    handleSchedules);
 
   server.enableCORS(true);
   server.begin();
@@ -1017,6 +856,8 @@ void setup()
   Serial.println("API web iniciada");
   Serial.print("IP: ");
   Serial.println(WiFi.localIP());
+  Serial.print("MAC Address: ");
+  Serial.println(WiFi.macAddress());
 
   printSystemStatus();
 }
@@ -1025,8 +866,7 @@ void setup()
 // LOOP
 // ============================================================
 
-void loop()
-{
+void loop() {
   // Handle incoming HTTP requests as often as possible.
   server.handleClient();
 
@@ -1035,26 +875,18 @@ void loop()
   unsigned long currentMillis = millis();
 
   if (
-    currentMillis - previousUpdate >=
-    LOOP_DELAY_MS
-  )
-  {
+    currentMillis - previousUpdate >= LOOP_DELAY_MS) {
     previousUpdate = currentMillis;
 
     // Retry synchronization until a valid time is obtained.
-    if (!clockSynchronized)
-    {
-      if (timeClient.forceUpdate())
-      {
+    if (!clockSynchronized) {
+      if (timeClient.forceUpdate()) {
         clockSynchronized = true;
 
         Serial.println(
-          "Hora sincronizada correctamente"
-        );
+          "Hora sincronizada correctamente");
       }
-    }
-    else
-    {
+    } else {
       // Keep the clock updated when possible.
       timeClient.update();
     }

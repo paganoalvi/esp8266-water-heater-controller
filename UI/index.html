@@ -162,6 +162,41 @@
     }
   }
 
+  function getNextScheduledStart(time, schedules, timeValid) {
+    if (!timeValid || !time) {
+      return "Sin sincronizar";
+    }
+
+    if (!schedules || schedules.length === 0) {
+      return "Sin horarios";
+    }
+
+    const [hours, minutes] = time.split(":").map(Number);
+    const currentMinutes = hours * 60 + minutes;
+
+    const nextToday = schedules
+      .map(schedule => schedule.start)
+      .filter(start => {
+        const [h, m] = start.split(":").map(Number);
+        return h * 60 + m > currentMinutes;
+      })
+      .sort();
+
+    if (nextToday.length > 0) {
+      return `Hoy a las ${nextToday[0]}`;
+    }
+
+    const nextTomorrow = schedules
+      .map(schedule => schedule.start)
+      .sort();
+
+    if (nextTomorrow.length > 0) {
+      return `Mañana a las ${nextTomorrow[0]}`;
+    }
+
+    return "Sin horarios";
+  }
+
 
   async function refreshStatus() {
     try {
@@ -184,13 +219,15 @@
         modeSelector.value = status.mode;
       }
 
+
+
       // Current time
       document.getElementById("current-time").textContent =
         status.timeValid ? status.time : "Sin sincronizar";
 
-      // Schedule status
+      // Próximo encendido programado
       document.getElementById("schedule-status").textContent =
-        status.scheduleActive ? "ACTIVO" : "INACTIVO";
+        getNextScheduledStart(status.time, status.schedules, status.timeValid);
 
       // Schedule list
       const scheduleList = document.getElementById("schedule-list");

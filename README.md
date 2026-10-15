@@ -1,34 +1,32 @@
 # ESP8266 Water Heater Controller
 
-Control system for a household electric water heater using an ESP8266 microcontroller, Wi-Fi connectivity, NTP time synchronization, a relay, and a local web interface.
+A DIY controller for a household electric water heater using an ESP8266, Wi-Fi, NTP time synchronization, a relay, and a browser-based web interface.
 
-The project is being developed incrementally. The ESP8266 currently operates as a standalone controller connected to the local Wi-Fi network and hosts a web interface that can be accessed from computers and mobile phones on the same network.
+The project is being developed incrementally. The ESP8266 handles the time-based control logic locally. A separate web interface lets a user inspect the controller and change its configuration from a computer or phone connected to the home network.
 
-The actual household water heater is **not yet connected to the controller**. Current tests are performed only with the controller hardware and relay.
+> **Safety status:** The actual household water heater is not connected to the controller. Tests are being performed with the controller hardware and relay only.
 
 ---
 
 ## Current Status
 
-The project currently has the following functionality:
+The project currently includes:
 
-* ESP8266 initialization.
-* Wi-Fi connection.
-* NTP time synchronization.
-* Local time calculation using UTC-3.
-* Automatic relay control according to a fixed schedule.
-* Manual/automatic control mode architecture.
-* Relay abstraction using `setRelay()`.
-* Local HTTP web server running on the ESP8266.
-* LittleFS filesystem.
-* HTML web interface stored in LittleFS.
-* CSS styling stored in LittleFS.
-* Web interface accessible from computers and mobile phones connected to the same local Wi-Fi network.
-* Serial output for monitoring system status.
+- ESP8266 initialization and Wi-Fi connectivity.
+- NTP time synchronization and local time using UTC-3.
+- Automatic relay control based on configurable time ranges.
+- `AUTO` and `MANUAL` operating modes.
+- A relay abstraction through `setRelay()`.
+- An HTTP API hosted by the ESP8266.
+- A separate HTML/CSS/JavaScript web interface.
+- A dark, green terminal-inspired interface for desktop and mobile.
+- API-based display of controller status and controls for mode, schedules, and manual operation.
+- Persistent storage of schedule and operating-mode configuration across ESP8266 restarts.
+- Serial output for monitoring and debugging.
 
-The current web interface is a first version with a terminal/Matrix-inspired visual design.
+The interface is served by a separate Ubuntu Server laptop on the local network. It is **not** served by the ESP8266 and is **not** stored in the ESP8266's LittleFS filesystem in the current architecture.
 
-The next development step is to connect the web interface controls to the ESP8266 control logic so that the relay can be controlled from a phone or computer.
+The ESP8266 retains the local control logic. The web interface is a client and is not required for the controller to evaluate its schedule.
 
 ---
 
@@ -36,20 +34,14 @@ The next development step is to connect the web interface controls to the ESP826
 
 ### Microcontroller
 
-* ESP8266
-* Detected as: `ESP8266EX`
-* Crystal: 26 MHz
-* Flash: 1 MB
+- ESP8266
+- Detected chip: `ESP8266EX`
+- Crystal: 26 MHz
+- Flash: 1 MB
 
 ### Relay
 
-The relay control signal is connected to:
-
-```text
-GPIO 0
-```
-
-The firmware defines:
+The relay control signal is connected to GPIO 0.
 
 ```cpp
 const uint8_t RELAY_PIN = 0;
@@ -62,159 +54,105 @@ GPIO LOW  → Relay ON
 GPIO HIGH → Relay OFF
 ```
 
-The firmware hides this hardware-specific behavior behind the function:
+The firmware hides this hardware-specific behavior behind:
 
 ```cpp
 void setRelay(bool turnOn)
 ```
 
-This allows the rest of the application to work with the logical concepts `ON` and `OFF` without depending on the physical GPIO polarity.
+This lets the rest of the application use the logical states `ON` and `OFF` without depending on the physical GPIO polarity.
 
-The relay has been tested independently during development.
-
-The actual household water heater remains disconnected from the controller.
+The relay has been tested independently during development. The household water heater remains disconnected.
 
 ### Controller board
 
-The controller board includes:
-
-* ESP8266
-* Relay/control circuitry
-* USB/serial programming interface
-* Programming/execution switch
-* Reset button
-* Power supply circuitry
-
-The exact board/model information will be documented when available.
+The controller board includes an ESP8266, relay/control circuitry, a USB/serial programming interface, a programming/execution switch, a reset button, and power-supply circuitry. Exact board details can be added when available.
 
 ---
 
-## Software
+## Software and Development Environment
 
 ### Development environment
 
-* Arduino IDE
-* Linux Mint
+- Arduino IDE
+- Linux Mint on the development computer
+- Ubuntu Server 24.04 LTS on the separate web-interface server
 
 ### ESP8266 Arduino Core
 
-The firmware has been tested with:
+The firmware has been tested with ESP8266 Arduino Core version:
 
 ```text
 3.1.2
 ```
 
-### Libraries
+### Firmware libraries
 
-The current firmware uses:
+The firmware uses:
 
-* `ESP8266WiFi`
-* `WiFiUdp`
-* `NTPClient`
-* `LittleFS`
-* `ESP8266WebServer`
+- `ESP8266WiFi`
+- `WiFiUdp`
+- `NTPClient`
+- `ESP8266WebServer`
+
+The web interface is a separate set of static files:
+
+- `index.html`
+- `style.css`
+- `js/api.js`
+
+The interface server currently uses Python's built-in HTTP server. The planned Go backend/API is a separate next step and is not yet part of the deployed water-heater architecture.
 
 ### Serial communication
 
-Serial communication is configured at:
-
-```text
-9600 baud
-```
-
-The firmware periodically prints information similar to:
-
-```text
-Time: 22:55:12 | Relay: OFF | Mode: AUTO | Schedule: INACTIVE
-```
-
-The serial output is currently used for development, testing, and debugging.
+Serial communication is configured at 9600 baud. Serial output is used for development, testing, and debugging; the exact status line depends on the current firmware version.
 
 ---
 
-## Wi-Fi
+## Wi-Fi and Credentials
 
-The ESP8266 connects to the local Wi-Fi network during startup.
-
-The current firmware waits for a Wi-Fi connection before continuing with the rest of the initialization.
-
-Wi-Fi credentials are stored locally in:
+The ESP8266 connects to the local Wi-Fi network during startup. Wi-Fi credentials are stored locally in:
 
 ```text
 secrets.h
 ```
 
-This file is excluded from Git using `.gitignore` and must not be committed to the public repository.
-
-The firmware includes:
+The firmware includes this file:
 
 ```cpp
 #include "secrets.h"
 ```
 
-with the credentials supplied through local constants.
+`secrets.h` is excluded from Git using `.gitignore` and must never be committed to the public repository. The public repository must not contain actual Wi-Fi credentials.
 
-The public repository must never contain the actual Wi-Fi credentials.
+The ESP8266 and the server laptop need to be connected to the same local network for the current setup to work.
 
 ---
 
 ## Time Synchronization
 
-The controller obtains the current time from:
+The controller obtains time from:
 
 ```text
 pool.ntp.org
 ```
 
-The configured UTC offset is:
+The configured UTC offset is UTC-3 (`-10800` seconds). The firmware uses the `NTPClient` library.
 
-```text
-UTC-3
-```
-
-The firmware uses the `NTPClient` library.
-
-The current time is represented internally by:
-
-* Hour
-* Minute
-* Second
-
-The scheduling logic currently uses the number of minutes elapsed since midnight.
+The scheduling logic represents time as the number of minutes elapsed since midnight. The web interface uses the controller's reported time and schedule data to display the next scheduled start when time synchronization is valid.
 
 ---
 
 ## Automatic Heating Schedule
 
-The current automatic schedule is:
+The controller supports schedule entries with a start and end time. The initial example schedule has two daily windows:
 
-| Time          | Heater |
-| ------------- | ------ |
-| 00:00 – 05:59 | OFF    |
-| 06:00 – 06:59 | ON     |
-| 07:00 – 17:59 | OFF    |
-| 18:00 – 18:59 | ON     |
-| 19:00 – 23:59 | OFF    |
+- 06:00–07:00
+- 18:00–19:00
 
-In simplified form:
+The configured schedule can be changed through the web interface and is stored persistently by the ESP8266. The actual relay state in `AUTO` mode is determined by the configured schedule, not by whether the web interface is open.
 
-```text
-06:00 ───── 07:00
-     ON
-
-07:00 ───────────────── 18:00
-               OFF
-
-18:00 ───── 19:00
-     ON
-
-19:00 ───────────────── 06:00
-               OFF
-```
-
-The current schedule is represented internally using schedule structures.
-
-Example:
+A schedule entry is represented in firmware using a structure like:
 
 ```cpp
 struct Schedule
@@ -224,98 +162,52 @@ struct Schedule
 };
 ```
 
-The current schedules are still defined in the firmware and are not yet configurable through the web interface.
+Times are stored as minutes since midnight. The current implementation is intended for daily time ranges; behavior for ranges that cross midnight should be verified before relying on them.
 
 ---
 
 ## Control Modes
 
-The controller has two logical operating modes:
+The controller has two operating modes:
 
 ```text
 AUTO
 MANUAL
 ```
 
-These modes are represented by:
-
-```cpp
-enum ControlMode
-{
-  MODE_AUTO,
-  MODE_MANUAL
-};
-```
-
 ### AUTO mode
 
-In automatic mode, the relay state is determined exclusively by the configured heating schedule.
-
-Conceptually:
+In automatic mode, the relay state is determined by the configured heating schedule:
 
 ```text
 Current time
-     ↓
+    ↓
 Schedule evaluation
-     ↓
+    ↓
 Relay ON / OFF
 ```
 
 ### MANUAL mode
 
-In manual mode, the relay is controlled explicitly through the manual relay state.
-
-Conceptually:
+In manual mode, the relay can be controlled explicitly through the manual controls:
 
 ```text
 Manual command
-     ↓
+    ↓
 Manual relay state
-     ↓
+    ↓
 Relay ON / OFF
 ```
 
-The logical manual state is stored separately from the physical relay state.
+The firmware keeps the manual state conceptually separate from the physical relay state. Manual relay commands must not silently override automatic scheduling while the controller is in `AUTO` mode.
 
-This allows the controller to distinguish between:
-
-* The desired manual state.
-* The actual relay state.
-
-### Web interface behavior
-
-The web interface will include a visible indicator showing whether the controller is currently in:
-
-```text
-AUTOMATIC
-```
-
-or:
-
-```text
-MANUAL
-```
-
-When the controller is in `AUTO` mode, the manual `ENCENDER` and `APAGAR` controls should not be available for direct operation.
-
-The interface may either:
-
-* Disable the manual controls, or
-* Allow the user to press them but display a message explaining that the controller must first be changed to `MANUAL`.
-
-The final UI behavior will be implemented together with the control API.
-
-The important design rule is:
-
-> Manual relay commands must not silently override automatic scheduling while the controller is in `AUTO` mode.
+The web interface provides a mode selector and manual controls. The API and firmware are responsible for enforcing the selected mode.
 
 ---
 
 ## Relay Control Abstraction
 
-The physical relay uses inverted GPIO logic.
-
-Instead of manipulating the GPIO directly throughout the application, the firmware uses:
+The physical relay uses inverted GPIO logic. Instead of manipulating the GPIO directly throughout the application, the firmware uses:
 
 ```cpp
 void setRelay(bool turnOn)
@@ -325,469 +217,275 @@ Conceptually:
 
 ```text
 Logical state
-    ON / OFF
-       ↓
-   setRelay()
-       ↓
-GPIO LOW / HIGH
-       ↓
-Physical relay
+  ON / OFF
+     ↓
+  setRelay()
+     ↓
+ GPIO LOW / HIGH
+     ↓
+ Physical relay
 ```
 
-This keeps hardware-specific details isolated from the scheduling and web-control logic.
-
----
-
-## Web Server
-
-The ESP8266 currently runs a local HTTP server using:
-
-```cpp
-ESP8266WebServer server(80);
-```
-
-The web server is accessible through the ESP8266's local IP address.
-
-For example:
-
-```text
-http://192.168.x.x/
-```
-
-The ESP8266 and the client device must be connected to the same local Wi-Fi network.
-
-The web server currently serves the main interface from LittleFS.
-
----
-
-## LittleFS
-
-The project uses LittleFS to store web files in the ESP8266 flash memory.
-
-Current web files:
-
-```text
-data/
-├── index.html
-└── style.css
-```
-
-The LittleFS image is uploaded separately from the firmware.
-
-The HTML references the stylesheet using a relative path:
-
-```html
-<link rel="stylesheet" href="./style.css">
-```
-
-This allows the same `index.html` and `style.css` structure to be opened locally during development and served by the ESP8266.
-
-The current interface has been successfully tested from both:
-
-* A computer connected to the local Wi-Fi.
-* A mobile phone connected to the same Wi-Fi.
-
----
-
-## Web Interface
-
-The current interface is a first visual version.
-
-The design uses a black background and green terminal/Matrix-inspired styling.
-
-The interface currently displays concepts such as:
-
-* Connection status.
-* Current heater state.
-* Operating mode.
-* Current time.
-* Heating schedule.
-* Manual control buttons.
-* System information.
-
-Some values displayed by the current HTML are still static placeholders.
-
-The next development stage is to replace these placeholders with real data obtained from the ESP8266.
-
----
-
-## Planned Web API
-
-The web interface will communicate with the ESP8266 through HTTP endpoints.
-
-The planned architecture includes endpoints such as:
-
-```text
-GET  /api/status
-GET  /api/config
-POST /api/config
-POST /api/control
-```
-
-The first endpoint to be implemented will be the relay control endpoint:
-
-```text
-POST /api/control
-```
-
-The intended flow is:
-
-```text
-Phone / Computer
-       ↓
-    Web UI
-       ↓
- JavaScript request
-       ↓
-POST /api/control
-       ↓
-ESP8266
-       ↓
-Control logic
-       ↓
-setRelay()
-       ↓
-Relay
-```
-
-The API will respect the current operating mode.
-
-For example, a manual relay command must not bypass the automatic schedule while the controller is in `AUTO` mode.
+This keeps hardware-specific details isolated from scheduling and web-control logic.
 
 ---
 
 ## System Architecture
 
-The current conceptual architecture is:
+The current setup has three main parts:
 
 ```text
-                 ┌──────────────────────┐
-                 │      Web Browser     │
-                 │  PC / Mobile Phone  │
-                 └──────────┬───────────┘
-                            │
-                         Wi-Fi
-                            │
-                 ┌──────────▼───────────┐
-                 │       ESP8266        │
-                 │                      │
-                 │  HTTP Web Server     │
-                 │  Control Logic       │
-                 │  Schedule Logic      │
-                 │  NTP Client          │
-                 └──────────┬───────────┘
-                            │
-                       setRelay()
-                            │
-                 ┌──────────▼───────────┐
-                 │        Relay         │
-                 └──────────────────────┘
+┌─────────────────────────────┐
+│ Browser on PC or phone      │
+│ Web interface (HTML/CSS/JS) │
+└──────────────┬──────────────┘
+               │ HTTP
+               ▼
+┌─────────────────────────────┐
+│ Ubuntu Server laptop        │
+│ Static UI server, port 8081 │
+└─────────────────────────────┘
+
+Browser JavaScript sends API requests directly to the ESP8266
+over the local network:
+
+┌─────────────────────────────┐
+│ ESP8266                     │
+│ HTTP API                    │
+│ Time and schedule logic     │
+│ AUTO / MANUAL control       │
+└──────────────┬──────────────┘
+               │
+               ▼
+        ┌────────────┐
+        │ Relay      │
+        └────────────┘
 ```
 
-The control logic is intentionally kept inside the ESP8266.
+The browser loads the interface from the Ubuntu Server laptop. The JavaScript in `UI/js/api.js` sends requests to the ESP8266's local IP address. In the current version, the browser communicates with the ESP8266 API directly; a central Go backend has not yet been integrated.
 
-The web interface acts as a client of the controller rather than becoming the controller itself.
+The ESP8266 should remain capable of controlling the relay according to its configured schedule even if the interface server is unavailable. Remote access over the public Internet has not been implemented, and the ESP8266 should not be exposed directly to the Internet.
 
-This means that the ESP8266 should remain capable of controlling the heater according to its configured schedule even if the web interface is not being accessed.
+---
+
+## ESP8266 HTTP API
+
+The ESP8266 runs a local HTTP server using `ESP8266WebServer`. Its API is available at the ESP8266's local IP address, for example:
+
+```text
+http://192.168.1.39/api/status
+```
+
+The exact address depends on the local network configuration and may change if the router assigns a different DHCP address. A DHCP reservation can be configured in the router to make the address predictable.
+
+The current API includes endpoints for status, manual control, operating mode, and schedules. The interface uses these endpoints to retrieve state and send changes. Endpoint details should be kept aligned with the actual firmware and `UI/js/api.js`.
+
+Examples of API paths include:
+
+```text
+GET  /api/status
+POST /api/control
+POST /api/mode
+POST /api/schedules
+```
+
+The ESP8266 and the browser device must be able to communicate over the same local network. The API is currently intended for local-network use only.
+
+---
+
+## Web Interface
+
+The source for the web interface is kept in the repository under `UI/`:
+
+```text
+UI/
+├── index.html
+├── style.css
+└── js/
+    └── api.js
+```
+
+The interface uses a black background and green terminal/Matrix-inspired styling. It displays controller connection status, current heater state, operating mode, current time, schedule information, and controls for mode, schedules, and manual operation.
+
+The “next scheduled start” indicator is calculated by the interface using the controller's reported time and configured schedule. If the controller's time is not synchronized, the interface indicates that rather than displaying a misleading time.
+
+### UI server
+
+The interface is currently deployed on a Samsung laptop running Ubuntu Server. The systemd service is named:
+
+```text
+water-heater-ui.service
+```
+
+It serves the static UI files on port `8081`. From a device on the same local network, open:
+
+```text
+http://192.168.1.50:8081
+```
+
+This address reflects the current server setup and may change unless a DHCP reservation is configured on the router.
+
+The UI server is separate from the ESP8266. Restarting or updating the UI server does not require uploading firmware to the ESP8266. Conversely, firmware changes require uploading the firmware to the controller.
+
+---
+
+## Deploying the Web Interface
+
+The repository on the development computer is the source of truth. The copy under `/home/alva/water-heater/UI/` on the Ubuntu Server laptop is the deployed copy; changing a file on one machine does not automatically update the other.
+
+From the project repository on the development computer, deploy an individual changed file with `scp`. For example, to update the main HTML file:
+
+```bash
+scp UI/index.html alva@192.168.1.50:/home/alva/water-heater/UI/index.html
+```
+
+To deploy the JavaScript or stylesheet, use the corresponding source and destination paths. For example:
+
+```bash
+scp UI/js/api.js alva@192.168.1.50:/home/alva/water-heater/UI/js/api.js
+scp UI/style.css alva@192.168.1.50:/home/alva/water-heater/UI/style.css
+```
+
+These commands assume the server's current LAN address and directory layout. Adjust the address if the server's IP changes.
+
+After deployment:
+
+1. Open or refresh the interface at `http://192.168.1.50:8081`.
+2. Check the browser's connection indicator.
+3. Verify that the reported time, mode, schedule, and relay state match the controller.
+4. Test controls carefully while the household water heater remains disconnected.
+
+A static HTML/CSS/JavaScript update normally does not require restarting the UI service. A browser refresh may be needed to load the updated file.
 
 ---
 
 ## Current Firmware Behavior
 
-At startup, the ESP8266:
+The firmware is responsible for the controller's local operation. At a high level, it initializes the relay and network, synchronizes time when possible, loads persistent configuration, processes API requests, evaluates the selected control mode and schedule, updates the relay, and prints diagnostic information over serial.
 
-1. Initializes the serial port.
-2. Configures the relay GPIO as an output.
-3. Sets the relay to a safe initial state.
-4. Connects to the configured Wi-Fi network.
-5. Waits for the Wi-Fi connection.
-6. Starts the NTP client.
-7. Mounts LittleFS.
-8. Starts the local HTTP server.
-
-During the main loop, the firmware currently:
-
-1. Handles HTTP client requests.
-2. Updates the NTP client.
-3. Updates the current time.
-4. Evaluates the control mode.
-5. Evaluates the automatic schedule when required.
-6. Updates the relay state.
-7. Prints system status through the serial port.
-
-The current implementation still uses `delay()` and will eventually need to become more non-blocking.
+The exact startup and loop sequence may change as the firmware is refactored. The essential design principle is that schedule evaluation and relay control remain inside the ESP8266 rather than depending on a browser being open.
 
 ---
 
-## Known Limitations
+## Persistence and Offline Behavior
 
-### Fixed schedule
+Schedule and operating-mode configuration are stored persistently on the ESP8266, so these settings should survive a controller restart or power interruption.
 
-The current heating schedule is hard-coded in the firmware.
+The web interface and its server are not required for the ESP8266 to execute its local control logic. However, the controller still depends on successful time synchronization to know the current time accurately; behavior during loss of time synchronization should be tested and documented as the firmware evolves.
 
-Changing the schedule currently requires modifying and uploading the firmware.
+---
 
-### Web controls are still under development
+## Known Limitations and Work in Progress
 
-The web interface currently displays manual control buttons, but the HTTP API and JavaScript control logic are still being developed.
-
-### Manual/automatic mode UI
-
-The control mode architecture exists in the firmware, but the web interface still needs to provide complete mode selection and enforcement.
-
-### Wi-Fi failure handling
-
-The firmware currently waits for a Wi-Fi connection during startup.
-
-There is no complete reconnection or timeout strategy yet.
-
-### NTP failure handling
-
-There is currently no complete strategy for loss of NTP synchronization.
-
-### Blocking delay
-
-The main loop currently uses `delay()`.
-
-This will eventually need to be replaced or reduced so that the ESP8266 can perform other tasks without unnecessary blocking.
-
-### Persistent configuration
-
-The schedule and other configuration values are not yet stored persistently.
-
-### Temperature measurement
-
-The current interface may display a temperature placeholder, but there is currently no temperature sensor integrated into the controller.
-
-### Remote access
-
-The current web interface is only intended for devices connected to the same local Wi-Fi network.
-
-No Internet-facing access has been implemented.
-
-### High-voltage appliance
-
-The actual household water heater is still disconnected from the controller.
-
-All current tests are performed using the controller hardware only.
+- **Remote access:** The current interface and API are intended for the local network. Internet access has not been implemented.
+- **Central backend:** A Go REST API on the Ubuntu Server laptop is planned, but the browser currently communicates directly with the ESP8266 API.
+- **Network reliability:** DHCP address changes can break configured URLs. Router DHCP reservations are a planned configuration improvement.
+- **Wi-Fi recovery:** Wi-Fi disconnection and reconnection behavior should be tested and improved.
+- **Time synchronization:** NTP failure and recovery behavior should be tested, especially to ensure safe schedule behavior when the clock is not valid.
+- **Temperature measurement:** No temperature sensor is currently integrated. Any temperature shown as a placeholder must not be treated as a real measurement.
+- **Electrical integration:** The household water heater is still disconnected from the controller.
 
 ---
 
 ## Development Plan
 
-The project is being developed incrementally.
+The project is developed incrementally, with changes tested before being committed.
 
-### A — Documentation
+### Firmware robustness
 
-Document the hardware, firmware behavior, architecture, and development process.
+- Improve Wi-Fi reconnection and timeout behavior.
+- Improve NTP synchronization recovery.
+- Review safe startup and relay states.
+- Reduce unnecessary blocking behavior.
+- Improve error reporting.
+- Keep application logic separate from hardware control.
 
-This README represents the current project baseline.
+### API and web interface
 
-### B — Code Refactoring
+- Keep the interface aligned with the current ESP8266 API.
+- Improve status and error feedback when the controller is unreachable.
+- Continue testing mode changes, schedule updates, and manual controls.
 
-Continue improving the firmware structure while preserving its behavior.
+### Centralized communication (planned)
 
-Goals include:
+The next architectural step is to add a Go REST API on the Ubuntu Server laptop. The intended future flow is:
 
-* Clear naming.
-* Separation of responsibilities.
-* Simple and reusable data structures.
-* Separation between scheduling and hardware control.
-* Centralized relay control.
-* Organized test/debug functionality.
-* Reduced blocking behavior.
+```text
+Browser UI
+    ↓
+Go REST API on server
+    ↓
+ESP8266 HTTP API on local network
+    ↓
+Local control logic and relay
+```
 
-### C — Control Logic Testing
+This is a planned change, not the current deployed architecture. The ESP8266 should continue to operate locally if the server or browser is unavailable.
 
-The scheduling logic should eventually be testable independently from the ESP8266.
+### Future features
 
-Important boundary cases include:
-
-* 05:59 → OFF
-* 06:00 → ON
-* 06:59 → ON
-* 07:00 → OFF
-* 17:59 → OFF
-* 18:00 → ON
-* 18:59 → ON
-* 19:00 → OFF
-* 23:30 → OFF
-* 00:30 → OFF
-
-Additional tests will be required for:
-
-* AUTO mode.
-* MANUAL mode.
-* Switching between modes.
-* Manual commands while in AUTO mode.
-* Manual commands while in MANUAL mode.
-
-### D — Web Control
-
-Implement the local HTTP API and connect the web interface to the controller.
-
-Initial functionality:
-
-* Display real relay state.
-* Display real operating mode.
-* Display current time.
-* Enable manual relay control in MANUAL mode.
-* Prevent or reject manual relay commands in AUTO mode.
-* Provide a clear mode indicator.
-
-### E — Configuration
-
-Allow the schedule and operating mode to be configured through the web interface.
-
-### F — Persistent Configuration
-
-Store configuration in the ESP8266 so that it survives a restart.
-
-### G — Firmware Robustness
-
-Improve:
-
-* Wi-Fi reconnection.
-* NTP synchronization recovery.
-* Safe startup behavior.
-* Non-blocking timing.
-* Error reporting.
-* Separation between application logic and hardware control.
-
----
-
-## Future Features
-
-Once the current controller is stable, the project may be extended with:
-
-### Configurable schedule
-
-Allow heating periods to be changed without modifying the firmware.
-
-### Persistent configuration
-
-Store schedule and controller settings in non-volatile memory.
-
-### Temperature sensor
-
-Add real temperature measurement to the controller.
-
-### Improved web interface
-
-Display real-time:
-
-* Current temperature.
-* Relay state.
-* Operating mode.
-* Current time.
-* Active schedule.
-* Next scheduled event.
-
-### Additional sensors
-
-Future versions may include other sensors or monitoring features.
-
-### Remote architecture
-
-A future version may include an external server or backend.
-
-The ESP8266 should remain capable of operating locally even if an external server is unavailable.
-
-These features are not part of the current implementation.
+Possible later additions include temperature measurement, history, a database, user accounts, and remote access through a secure architecture. These features are not part of the current implementation.
 
 ---
 
 ## Development Workflow
 
-The repository uses Git for version control.
+The repository uses Git for version control:
 
-The `main` branch represents a stable baseline.
+- `main` represents a stable baseline.
+- `develop` is used for ongoing development and testing.
 
-The `develop` branch is used for ongoing development and testing.
-
-The preferred development workflow is:
+Preferred workflow:
 
 ```text
 Edit
   ↓
-Compile
+Compile / inspect changes
   ↓
-Upload firmware / LittleFS
+Upload firmware if firmware changed
   ↓
-Test on ESP8266
+Deploy UI files if UI changed
   ↓
-Verify behavior
+Test on the local network
   ↓
 Commit
   ↓
 Push to develop
 ```
 
-Changes should be tested before being committed.
-
-Stable development milestones can later be merged into `main`.
+Only upload firmware when firmware files have changed. UI-only changes can be deployed to the Ubuntu Server laptop without reflashing the ESP8266.
 
 ### Firmware upload
 
-Firmware is uploaded through the Arduino IDE while the controller is placed in programming mode.
-
-After uploading:
-
-1. Return the controller to execution mode.
-2. Press RESET if necessary.
-3. Verify the firmware through the serial monitor or web server.
-
-### LittleFS upload
-
-The LittleFS filesystem is uploaded separately from the firmware.
-
-The serial monitor should be closed during the filesystem upload.
-
-The controller must be placed in the appropriate programming/bootloader state so that the uploader can communicate with the ESP8266.
-
-After the upload:
-
-1. Return the controller to execution mode.
-2. Reset the ESP8266.
-3. Verify that the firmware starts normally.
-4. Verify that the web interface is available.
+Firmware is uploaded through the Arduino IDE while the controller is placed in programming mode. After uploading, return the controller to execution mode, reset it if necessary, and verify startup through the serial monitor or API.
 
 ---
 
 ## Project Structure
 
-Current project structure:
+The repository is organized approximately as follows:
 
 ```text
 esp8266-water-heater-controller/
-│
 ├── README.md
-│
+├── UI/
+│   ├── index.html
+│   ├── style.css
+│   └── js/
+│       └── api.js
 └── esp8266_water_heater/
-    │
-    ├── esp8266_water_heater.ino
-    ├── secrets.h
-    │
-    └── data/
-        ├── index.html
-        └── style.css
+    └── esp8266_water_heater.ino
 ```
 
-`secrets.h` is a local file and must not be committed to the public repository.
-
-The `data/` directory contains files that are uploaded to the ESP8266 LittleFS filesystem.
+A local `secrets.h` file is also required for firmware builds, but it is excluded from the public repository and should not be committed. The current UI files are not stored in the ESP8266's LittleFS filesystem.
 
 ---
 
 ## Safety
 
-The controller is intended to eventually control a household electric water heater.
+The controller is intended to eventually control a household electric water heater. The actual high-voltage electrical installation and its safety mechanisms are outside the scope of the software.
 
-The actual high-voltage electrical installation and safety mechanisms are outside the scope of the software.
-
-During development, the water heater remains disconnected from the controller while the firmware, relay, network communication, and control logic are being tested.
-
-Hardware modifications, electrical protection, relay ratings, isolation, grounding, enclosure, and all other electrical safety requirements must be independently verified before connecting the controller to the appliance.
+During development, the water heater remains disconnected while the firmware, relay, network communication, and control logic are tested. Before connecting the appliance, hardware modifications, electrical protection, relay ratings, isolation, grounding, enclosure, and all other electrical safety requirements must be independently verified by a qualified person.
 
 ---
 
