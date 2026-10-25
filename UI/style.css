@@ -1,552 +1,494 @@
+/* ==========================================================
+   TOKENS
+   Escala azul de oscuro a claro. Cada valor tiene un rol:
+   - 900/700: texto principal y énfasis (azul marino)
+   - 500:     acciones e interacción
+   - 300:     detalles y bordes activos
+   - 100/50:  superficies y fondos (celeste muy claro)
+   ========================================================== */
 :root {
-      --background: #050805;
-      --surface: #0a100a;
-      --surface-light: #0e180e;
-
-      --green: #00ff41;
-      --green-dark: #00a82b;
-      --green-dim: #16852f;
-
-      --text: #b6ffbf;
-      --text-dim: #5b8f65;
-
-      --border: #174d22;
-
-      --danger: #ff3030;
-
-      --font: "Courier New", monospace;
-    }
-
-
-    * {
-      box-sizing: border-box;
-    }
-
-
-    body {
-      margin: 0;
-
-      background:
-        radial-gradient(
-          circle at top,
-          #0a180c 0%,
-          var(--background) 45%
-        );
-
-      color: var(--text);
-
-      font-family: var(--font);
-
-      min-height: 100vh;
-    }
-
-
-    body::before {
-      content: "";
-
-      position: fixed;
-
-      inset: 0;
-
-      pointer-events: none;
-
-      background:
-        repeating-linear-gradient(
-          0deg,
-          rgba(0, 255, 65, 0.025),
-          rgba(0, 255, 65, 0.025) 1px,
-          transparent 1px,
-          transparent 3px
-        );
-    }
-
-
-    .container {
-      width: min(900px, 92%);
-
-      margin: 0 auto;
-
-      padding: 40px 0;
-    }
-
-
-    .header {
-      display: flex;
-
-      justify-content: space-between;
-
-      align-items: flex-start;
-
-      gap: 20px;
-
-      margin-bottom: 30px;
-    }
-
-
-    .terminal-label {
-      color: var(--green-dim);
-
-      font-size: 0.8rem;
-
-      margin: 0 0 8px;
-    }
-
-
-    h1 {
-      color: var(--green);
-
-      font-size: clamp(2rem, 7vw, 4rem);
-
-      margin: 0;
-
-      letter-spacing: 5px;
-
-      text-shadow:
-        0 0 5px var(--green),
-        0 0 20px rgba(0, 255, 65, 0.4);
-    }
-
-
-    .connection {
-      display: flex;
-
-      align-items: center;
-
-      gap: 8px;
-
-      color: var(--green);
-
-      font-size: 0.8rem;
-    }
-
-
-    .status-dot {
-      width: 10px;
-
-      height: 10px;
-
-      background: var(--green);
-
-      border-radius: 50%;
-
-      box-shadow:
-        0 0 8px var(--green);
-
-      animation: pulse 2s infinite;
-    }
-
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0.35;
-      }
-
-    }
-
-
-    .status-card,
-    .control-card,
-    .schedule-card {
-      background: rgba(10, 16, 10, 0.9);
-
-      border: 1px solid var(--border);
-
-      box-shadow:
-        0 0 20px rgba(0, 255, 65, 0.04);
-
-      margin-bottom: 20px;
-
-      padding: 24px;
-    }
-
-
-    .status-header {
-      display: flex;
-
-      justify-content: space-between;
-
-      align-items: center;
-
-      border-bottom: 1px solid var(--border);
-
-      padding-bottom: 15px;
-
-      margin-bottom: 25px;
-
-      color: var(--green-dim);
-
-      font-size: 0.85rem;
-    }
-
-
-    .status-badge {
-      padding: 5px 10px;
-
-      border: 1px solid;
-
-      font-size: 0.75rem;
-    }
-
-
-    .status-badge.off {
-      color: var(--danger);
-
-      border-color: var(--danger);
-
-      text-shadow: 0 0 8px rgba(255, 48, 48, 0.5);
-    }
-
-
-    .status-main {
-      display: grid;
-
-      grid-template-columns: 1fr 1fr;
-
-      gap: 30px;
-
-      align-items: center;
-    }
-
-
-    .temperature-placeholder {
-      text-align: center;
-
-      border-right: 1px solid var(--border);
-
-      padding: 20px;
-    }
-
-
-    .temperature-value {
-      font-size: 5rem;
-
-      color: var(--text-dim);
-    }
-
-
-    .temperature-unit {
-      color: var(--green-dim);
-
-      font-size: 1.5rem;
-    }
-
-
-    .status-info {
-      display: flex;
-
-      flex-direction: column;
-
-      gap: 18px;
-    }
-
-
-    .info-row {
-      display: flex;
-
-      justify-content: space-between;
-
-      gap: 20px;
-
-      color: var(--text-dim);
-
-      font-size: 0.85rem;
-    }
-
-
-    .info-row strong {
-      color: var(--green);
-
-      text-align: right;
-    }
-
-
-    .section-title {
-      color: var(--green);
-
-      border-bottom: 1px solid var(--border);
-
-      padding-bottom: 15px;
-
-      margin-bottom: 25px;
-
-      font-size: 0.85rem;
-    }
-
-
-    .control-buttons {
-      display: grid;
-
-      grid-template-columns: 1fr 1fr;
-
-      gap: 15px;
-    }
-
-
-    .btn {
-      background: transparent;
-
-      font-family: var(--font);
-
-      font-size: 1rem;
-
-      font-weight: bold;
-
-      padding: 18px;
-
-      cursor: pointer;
-
-      border: 1px solid;
-
-      transition:
-        background 0.2s,
-        box-shadow 0.2s,
-        color 0.2s;
-    }
-
-
-    .btn-on {
-      color: var(--green);
-
-      border-color: var(--green);
-    }
-
-
-    .btn-on:hover {
-      background: var(--green);
-
-      color: #000;
-
-      box-shadow:
-        0 0 20px rgba(0, 255, 65, 0.4);
-    }
-
-
-    .btn-off {
-      color: var(--danger);
-
-      border-color: var(--danger);
-    }
-
-
-    .btn-off:hover {
-      background: var(--danger);
-
-      color: #000;
-
-      box-shadow:
-        0 0 20px rgba(255, 48, 48, 0.3);
-    }
-
-
-    .warning {
-      color: var(--text-dim);
-
-      font-size: 0.7rem;
-
-      margin: 20px 0 0;
-    }
-
-
-    .schedule-list {
-      display: flex;
-
-      flex-direction: column;
-    }
-
-
-    .schedule-row {
-      display: grid;
-
-      grid-template-columns: 50px 1fr auto;
-
-      align-items: center;
-
-      gap: 15px;
-
-      padding: 18px 0;
-
-      border-bottom: 1px solid var(--border);
-    }
-
-
-    .schedule-row:last-child {
-      border-bottom: none;
-    }
-
-
-    .schedule-number {
-      color: var(--green-dim);
-    }
-
-
-    .schedule-time {
-      display: flex;
-
-      gap: 15px;
-
-      align-items: center;
-    }
-
-
-    .schedule-time strong {
-      color: var(--green);
-
-      font-size: 1.1rem;
-    }
-
-
-    .schedule-state {
-      color: var(--green);
-
-      font-size: 0.7rem;
-    }
-
-
-    footer {
-      display: flex;
-
-      justify-content: space-between;
-
-      color: var(--text-dim);
-
-      font-size: 0.65rem;
-
-      padding: 20px 0;
-    }
-
-
-    @media (max-width: 600px) {
-
-      .container {
-        padding: 25px 0;
-      }
-
-
-      .header {
-        flex-direction: column;
-      }
-
-
-      .status-main {
-        grid-template-columns: 1fr;
-      }
-
-
-      .temperature-placeholder {
-        border-right: none;
-
-        border-bottom: 1px solid var(--border);
-      }
-
-
-      .control-buttons {
-        grid-template-columns: 1fr;
-      }
-
-
-      .schedule-row {
-        grid-template-columns: 35px 1fr;
-      }
-
-
-      .schedule-state {
-        grid-column: 2;
-      }
-
-    }
-
-
-  /* Selector del modo de funcionamiento */
-  #mode-selector {
-    display: block;
-    width: 100%;
-    max-width: 260px;
-    margin-top: 10px;
-    padding: 12px 40px 12px 14px;
-
-    font: inherit;
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--green);
-
-    background-color: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-
-    cursor: pointer;
-    outline: none;
-    transition:
-      border-color 0.2s ease,
-      box-shadow 0.2s ease,
-      background-color 0.2s ease;
-  }
-
-  /* Opciones del desplegable */
-  #mode-selector option {
-    color: var(--text);
-    background-color: var(--surface);
-  }
-
-  /* Al pasar el cursor */
-  #mode-selector:hover {
-    border-color: var(--green-dark);
-    background-color: var(--surface-light);
-  }
-
-  /* Foco visible con verde */
-  #mode-selector:focus-visible {
-    border-color: var(--green);
-    box-shadow: 0 0 0 2px rgba(0, 255, 65, 0.15);
-  }
-
-  /* Mientras se procesa el cambio */
-  #mode-selector:disabled {
-    color: var(--text-dim);
-    border-color: var(--border);
-    cursor: wait;
-    opacity: 0.65;
-  }
-
-  /* Mensaje de estado */
-  #mode-message {
-    margin-top: 8px;
-    color: var(--text-dim);
-    font-size: 0.875rem;
-    line-height: 1.5;
-  }
-
-  /* Adaptación para mensajes de error */
-  #mode-message.error {
-    color: var(--green);
-  }
-
-
-
-/* Editor de horarios */
+  --blue-900: #0a2342;
+  --blue-700: #12427a;
+  --blue-500: #2476c9;
+  --blue-300: #7cb4e8;
+  --blue-100: #dcecfa;
+  --blue-50:  #f2f8fd;
+
+  --white: #ffffff;
+
+  --text: var(--blue-900);
+  --text-dim: #4f6a86;
+
+  --line: #d3e1f0;
+
+  --danger: #c62828;
+
+  --radius-lg: 14px;
+  --radius-md: 10px;
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Consolas, monospace;
+
+  --shadow-card:
+    0 1px 2px rgba(10, 35, 66, 0.06),
+    0 8px 24px rgba(10, 35, 66, 0.06);
+}
+
+
+/* ==========================================================
+   BASE
+   ========================================================== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+
+  background: linear-gradient(180deg, var(--blue-100) 0%, var(--white) 360px);
+  background-color: var(--white);
+
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.5;
+}
+
+.container {
+  width: min(720px, 92%);
+  margin: 0 auto;
+  padding: 40px 0;
+}
+
+/* Foco visible para quien navega con teclado */
+:focus-visible {
+  outline: 3px solid var(--blue-300);
+  outline-offset: 2px;
+}
+
+
+/* ==========================================================
+   HEADER
+   ========================================================== */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.terminal-label {
+  margin: 0 0 6px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+h1 {
+  margin: 0;
+  color: var(--blue-900);
+  font-size: clamp(1.8rem, 6vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+}
+
+.connection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+
+  color: var(--blue-700);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  background: var(--blue-500);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(36, 118, 201, 0.2);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+/* Estados del indicador. El valor sale de data-state en el HTML. */
+.connection[data-state="checking"] {
+  color: var(--text-dim);
+}
+
+.connection[data-state="checking"] .status-dot {
+  background: var(--blue-300);
+  box-shadow: 0 0 0 3px rgba(124, 180, 232, 0.25);
+}
+
+.connection[data-state="offline"] {
+  color: var(--danger);
+  border-color: rgba(198, 40, 40, 0.35);
+}
+
+.connection[data-state="offline"] .status-dot {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.18);
+  animation: none;
+}
+
+
+/* ==========================================================
+   TARJETAS (estilo compartido)
+   Una sola regla para las tres: si querés cambiar el look
+   de todas, se toca en un único lugar.
+   ========================================================== */
+.status-card,
+.control-card,
+.schedule-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 24px;
+}
+
+.status-card {
+  margin-bottom: 8px;
+}
+
+/* IMPORTANTE: el atributo [hidden] del navegador pierde contra
+   cualquier regla `display` que escribamos nosotros (por ejemplo
+   .schedule-actions { display: flex }). Esta regla general garantiza
+   que hidden siempre oculte, en cualquier elemento. */
+[hidden] {
+  display: none !important;
+}
+
+
+/* ==========================================================
+   ESTADO ACTUAL
+   ========================================================== */
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Base neutra: sirve para "DESCONOCIDO" */
+.status-badge {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+
+  color: var(--text-dim);
+  background: var(--blue-50);
+
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* Encendido: azul lleno, es el estado "activo" */
+.status-badge.on {
+  color: var(--white);
+  background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
+  border-color: transparent;
+}
+
+/* Apagado: contorno azul marino, calmo (rojo se reserva a errores) */
+.status-badge.off {
+  color: var(--blue-700);
+  background: var(--white);
+  border-color: var(--blue-300);
+}
+
+.status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.info-row strong {
+  color: var(--blue-900);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+
+/* ==========================================================
+   TABS (segmented control)
+   ========================================================== */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 24px 0 8px;
+  padding: 4px;
+
+  background: var(--blue-100);
+  border-radius: var(--radius-lg);
+}
+
+.tab {
+  min-height: 48px;
+  border: 0;
+  border-radius: var(--radius-md);
+
+  background: transparent;
+  color: var(--blue-700);
+
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tab:hover:not([aria-selected="true"]):not(:disabled) {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+/* El estilo sale del atributo ARIA: no hace falta una clase extra */
+.tab[aria-selected="true"] {
+  color: var(--white);
+  background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
+  box-shadow: 0 2px 8px rgba(18, 66, 122, 0.3);
+}
+
+.tab:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* Reserva el alto del mensaje para que el layout no salte */
+#mode-message {
+  min-height: 1.5em;
+  margin: 8px 4px 16px;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+}
+
+#mode-message.error {
+  color: var(--danger);
+}
+
+
+/* ==========================================================
+   TÍTULOS DE SECCIÓN Y TEXTO DE AYUDA
+   ========================================================== */
+.section-title {
+  margin-bottom: 8px;
+  color: var(--blue-900);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.hint {
+  margin: 0 0 20px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+/* Título a la izquierda, botón de acción a la derecha */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+/* Más específico que .section-title: anula su margen solo acá */
+.section-header .section-title {
+  margin-bottom: 0;
+}
+
+/* Botón cuadrado con un ícono adentro (el lápiz) */
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+
+  color: var(--blue-700);
+  background: var(--blue-50);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--blue-100);
+  border-color: var(--blue-300);
+}
+
+.icon-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+
+/* ==========================================================
+   HORARIOS: VISTA DE LECTURA
+   ========================================================== */
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.schedule-row {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.schedule-row:last-child {
+  border-bottom: none;
+}
+
+.schedule-number {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.schedule-time {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.schedule-time strong {
+  color: var(--blue-900);
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.schedule-time span {
+  color: var(--blue-300);
+}
+
+
+/* ==========================================================
+   CONTROL MANUAL
+   ========================================================== */
+.control-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.btn {
+  min-height: 60px;
+  padding: 16px;
+  border: 2px solid;
+  border-radius: var(--radius-lg);
+
+  background: var(--white);
+
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-on {
+  color: var(--blue-500);
+  border-color: var(--blue-500);
+}
+
+.btn-off {
+  color: var(--blue-700);
+  border-color: var(--blue-700);
+}
+
+.btn-on:hover,
+.btn-off:hover {
+  background: var(--blue-50);
+}
+
+/* Botón que coincide con el estado real del relé.
+   Se activa con aria-pressed="true" desde JS. */
+.btn[aria-pressed="true"] {
+  color: var(--white);
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(18, 66, 122, 0.3);
+}
+
+.btn-on[aria-pressed="true"] {
+  background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
+}
+
+.btn-off[aria-pressed="true"] {
+  background: var(--blue-900);
+}
+
+.btn[aria-pressed="true"]::before {
+  content: "✓ ";
+}
+
+.warning {
+  min-height: 1.5em;
+  margin: 16px 0 0;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+
+/* ==========================================================
+   EDITOR DE HORARIOS
+   ========================================================== */
 .schedule-editor {
   display: grid;
   gap: 12px;
-  margin-top: 16px;
 }
 
 .schedule-edit-row {
-  padding: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 16px;
+  background: var(--blue-50);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
 }
 
 .schedule-edit-heading {
   margin-bottom: 12px;
-  color: var(--green);
+  color: var(--blue-700);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .schedule-edit-fields {
@@ -557,30 +499,33 @@
 
 .schedule-edit-fields label {
   display: grid;
-  gap: 7px;
+  gap: 6px;
   color: var(--text-dim);
   font-size: 0.85rem;
 }
 
 .schedule-edit-fields input {
-  box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  padding: 11px 8px;
+  min-height: 44px;
+  padding: 10px 12px;
 
-  color: var(--green);
-  color-scheme: dark;
-  background: var(--surface-light);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  color: var(--blue-900);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
 
   font: inherit;
   font-size: 1rem;
 }
 
+.schedule-edit-fields input:hover {
+  border-color: var(--blue-300);
+}
+
 .schedule-edit-fields input:focus-visible {
-  outline: 1px solid var(--green);
-  border-color: var(--green);
+  border-color: var(--blue-500);
+  outline-offset: 0;
 }
 
 .schedule-actions {
@@ -590,34 +535,40 @@
   margin-top: 16px;
 }
 
+/* Botones secundarios */
 .schedule-actions button,
 .remove-schedule-button {
-  padding: 11px 14px;
-  color: var(--green);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  min-height: 44px;
+  padding: 10px 16px;
+
+  color: var(--blue-700);
+  background: var(--white);
+  border: 1px solid var(--blue-300);
+  border-radius: var(--radius-md);
+
   font: inherit;
   font-weight: 600;
+
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
+.schedule-actions button:hover:not(:disabled),
+.remove-schedule-button:hover:not(:disabled) {
+  background: var(--blue-50);
+  border-color: var(--blue-500);
+}
+
+/* Botón principal: el que guarda */
 #save-schedules-button {
-  background: var(--green-dark);
-  border-color: var(--green-dark);
-  color: var(--background);
+  color: var(--white);
+  background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
+  border-color: transparent;
 }
 
-.schedule-actions button:hover,
-.remove-schedule-button:hover {
-  background: var(--surface-light);
-  border-color: var(--green-dim);
-}
-
-#save-schedules-button:hover {
-  background: var(--green);
-  border-color: var(--green);
+#save-schedules-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--blue-900), var(--blue-700));
+  border-color: transparent;
 }
 
 .schedule-actions button:disabled,
@@ -628,24 +579,63 @@
 
 .remove-schedule-button {
   margin-top: 12px;
-  padding: 7px 10px;
+  min-height: 36px;
+  padding: 6px 12px;
   font-size: 0.85rem;
 }
 
 #schedule-message {
-  margin-top: 10px;
+  min-height: 1.5em;
+  margin: 12px 0 0;
   color: var(--text-dim);
   font-size: 0.875rem;
-  line-height: 1.5;
 }
 
 #schedule-message.error {
-  color: #ff7070;
+  color: var(--danger);
+}
+
+
+/* ==========================================================
+   FOOTER
+   ========================================================== */
+footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 24px 0 0;
+
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+
+/* ==========================================================
+   RESPONSIVE
+   ========================================================== */
+@media (max-width: 600px) {
+  .container {
+    padding: 24px 0;
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .status-card,
+  .control-card,
+  .schedule-card {
+    padding: 18px;
+  }
+
+  .control-buttons {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 420px) {
   .schedule-edit-row {
-    padding: 11px;
+    padding: 12px;
   }
 
   .schedule-edit-fields {
@@ -661,3 +651,11 @@
   }
 }
 
+
+/* Respeta a quien pidió menos animaciones en su sistema */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
