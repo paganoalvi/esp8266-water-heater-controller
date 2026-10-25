@@ -1,65 +1,37 @@
 <!DOCTYPE html>
-
 <html lang="es">
-
 <head>
   <meta charset="UTF-8">
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Termotanque</title>
   <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
+<main class="container">
 
-  <main class="container">
+  <header class="header">
+    <div>
+      <p class="terminal-label">SYSTEM://WATER_HEATER</p>
+      <h1>TERMOTANQUE</h1>
+    </div>
 
-```
-<header class="header">
-  <div>
-    <p class="terminal-label">SYSTEM://WATER_HEATER</p>
-    <h1>TERMOTANQUE</h1>
-  </div>
-
-  <div class="connection">
-    <span class="status-dot"></span>
-    ONLINE
-  </div>
-</header>
-
-
-<section class="status-card">
-
-  <div class="status-header">
-    <span>ESTADO ACTUAL</span>
-    <span class="status-badge off" id="relay-status">
-      DESCONOCIDO
-    </span>
-  </div>
-
-  <div class="status-main">
+    <!-- Estado de conexión con el ESP8266: checking | online | offline -->
+    <div class="connection" id="connection" data-state="checking" role="status">
+      <span class="status-dot"></span>
+      <span id="connection-label">CONECTANDO...</span>
+    </div>
+  </header>
 
 
+  <!-- ESTADO: siempre visible, común a ambos modos -->
+  <section class="status-card">
+    <div class="status-header">
+      <span>ESTADO ACTUAL</span>
+      <span class="status-badge" id="relay-status">DESCONOCIDO</span>
+    </div>
 
     <div class="status-info">
-
-      <div class="info-row">
-        <span>Modo</span>
-        
-    <select id="mode-selector" aria-label="Modo de funcionamiento">
-      <option value="AUTO">Automático</option>
-      <option value="MANUAL">Manual</option>
-    </select>
-
-    <p id="mode-message" role="status">
-      Seleccioná un modo de funcionamiento.
-    </p>
-
-      </div>
-
       <div class="info-row">
         <span>Horario</span>
         <strong id="current-time">--:--:--</strong>
@@ -69,86 +41,309 @@
         <span>Próximo encendido</span>
         <strong id="schedule-status">--</strong>
       </div>
+    </div>
+  </section>
 
+
+  <!-- TABS: la pestaña activa ES el modo real del dispositivo.
+       Automático arranca preseleccionado hasta que llega el estado real. -->
+  <nav class="tabs" role="tablist" aria-label="Modo de funcionamiento">
+    <button
+      type="button"
+      class="tab"
+      role="tab"
+      id="tab-auto"
+      data-mode="AUTO"
+      aria-selected="true"
+      aria-controls="panel-auto"
+    >
+      AUTOMÁTICO
+    </button>
+
+    <button
+      type="button"
+      class="tab"
+      role="tab"
+      id="tab-manual"
+      data-mode="MANUAL"
+      aria-selected="false"
+      aria-controls="panel-manual"
+    >
+      MANUAL
+    </button>
+  </nav>
+
+  <p id="mode-message" role="status" aria-live="polite"></p>
+
+
+  <!-- PANEL AUTOMÁTICO -->
+  <section
+    class="schedule-card panel"
+    id="panel-auto"
+    role="tabpanel"
+    aria-labelledby="tab-auto"
+  >
+    <div class="section-header">
+      <div class="section-title">
+        <span>&gt; HORARIOS</span>
+      </div>
+
+      <!-- Lápiz: abre el editor. Deshabilitado hasta tener los horarios. -->
+      <button
+        type="button"
+        class="icon-button"
+        id="edit-schedules-button"
+        aria-label="Editar horarios"
+        title="Editar horarios"
+        disabled
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 20h9"></path>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+        </svg>
+      </button>
     </div>
 
-  </div>
+    <p class="hint" id="schedule-hint">
+      El termotanque se enciende solo en estos horarios.
+    </p>
 
-</section>
+    <!-- Vista de lectura (por defecto) -->
+    <div class="schedule-list" id="schedule-list">
+      <p class="hint">Cargando horarios...</p>
+    </div>
 
+    <!-- Vista de edición (se abre con el lápiz) -->
+    <div class="schedule-editor" id="schedule-editor" hidden></div>
 
-<section class="control-card">
+    <div class="schedule-actions" id="schedule-actions" hidden>
+      <button type="button" id="add-schedule-button">
+        + Agregar horario
+      </button>
 
-  <div class="section-title">
-    <span>&gt; CONTROL MANUAL</span>
-  </div>
+      <button type="button" id="cancel-schedules-button">
+        Cancelar
+      </button>
 
-  <div class="control-buttons">
+      <button type="button" id="save-schedules-button">
+        Aplicar horarios
+      </button>
+    </div>
 
-    <button
-      class="btn btn-on"
-      onclick="handleRelayCommand('on')"
-    >
-      ENCENDER
-    </button>
-
-    <button
-      class="btn btn-off"
-      onclick="handleRelayCommand('off')"
-    >
-      APAGAR
-    </button>
-
-  </div>
-
-  <p class="warning" id="control-message">
-    ⚠ El control manual ignora temporalmente los horarios automáticos.
-  </p>
-
-</section>
+    <p id="schedule-message" role="status" aria-live="polite"></p>
+  </section>
 
 
-<section class="schedule-card">
+  <!-- PANEL MANUAL -->
+  <section
+    class="control-card panel"
+    id="panel-manual"
+    role="tabpanel"
+    aria-labelledby="tab-manual"
+    hidden
+  >
+    <div class="section-title">
+      <span>&gt; CONTROL MANUAL</span>
+    </div>
 
-  <div class="section-title">
-    <span>&gt; HORARIOS</span>
-  </div>
+    <p class="hint">
+      Los horarios automáticos están pausados. El termotanque
+      mantiene el estado que elijas hasta que vuelvas a Automático.
+    </p>
 
-  
-<div class="schedule-list" id="schedule-list">
-  <!-- Los horarios actuales se muestran aquí -->
-</div>
+    <div class="control-buttons">
+      <button type="button" class="btn btn-on" data-relay="on">
+        ENCENDER
+      </button>
 
-<div class="schedule-editor" id="schedule-editor">
-  <!-- El editor se genera desde JavaScript -->
-</div>
+      <button type="button" class="btn btn-off" data-relay="off">
+        APAGAR
+      </button>
+    </div>
 
-<div class="schedule-actions">
-  <button type="button" id="add-schedule-button">
-    + Agregar horario
-  </button>
-
-  <button type="button" id="save-schedules-button">
-    Aplicar horarios
-  </button>
-</div>
-
-<p id="schedule-message" role="status" aria-live="polite"></p>
+    <p class="warning" id="control-message" role="status" aria-live="polite"></p>
+  </section>
 
 
-</section>
+  <footer>
+    <span>ESP8266 WATER HEATER CONTROLLER</span>
+    <span>v0.3</span>
+  </footer>
+
+</main>
+
+<script src="./js/api.js"></script>
+
+<script>
+  /* ============================================================
+     ESTADO DE LA INTERFAZ
+     Se declara todo arriba: así nada se usa antes de existir.
+     ============================================================ */
+  let changingMode = false;
+
+  // true = el editor de horarios está abierto
+  let editingSchedules = false;
+
+  // Sube cada vez que el usuario cambia de modo. Sirve para descartar
+  // respuestas de polling que empezaron ANTES del cambio (ya obsoletas).
+  let modeChangeCounter = 0;
+
+  // Consultas de estado fallidas seguidas (para el indicador de conexión)
+  let failedPolls = 0;
+  const OFFLINE_AFTER_FAILURES = 2;
+
+  // Últimos horarios confirmados por el ESP8266 (ordenados)
+  let lastSchedules = [];
+  let hasLoadedStatus = false;
+
+  // Elementos que se usan seguido
+  const tabs = document.querySelectorAll(".tab");
+  const relayButtons = document.querySelectorAll("[data-relay]");
+
+  const panels = {
+    AUTO: document.getElementById("panel-auto"),
+    MANUAL: document.getElementById("panel-manual")
+  };
+
+  const connection = document.getElementById("connection");
+  const connectionLabel = document.getElementById("connection-label");
+  const relayStatus = document.getElementById("relay-status");
+  const currentTime = document.getElementById("current-time");
+  const scheduleStatus = document.getElementById("schedule-status");
+
+  const scheduleHint = document.getElementById("schedule-hint");
+  const scheduleList = document.getElementById("schedule-list");
+  const scheduleEditor = document.getElementById("schedule-editor");
+  const scheduleActions = document.getElementById("schedule-actions");
+  const scheduleMessage = document.getElementById("schedule-message");
+  const editButton = document.getElementById("edit-schedules-button");
+  const addButton = document.getElementById("add-schedule-button");
+  const cancelButton = document.getElementById("cancel-schedules-button");
+  const saveButton = document.getElementById("save-schedules-button");
 
 
-<footer>
-  <span>ESP8266 WATER HEATER CONTROLLER</span>
-  <span>v0.1</span>
-</footer>
-```
+  /* ============================================================
+     CONEXIÓN CON EL ESP8266
+     ============================================================ */
+  function setConnection(state) {
+    const labels = {
+      checking: "CONECTANDO...",
+      online: "ONLINE",
+      offline: "SIN CONEXIÓN"
+    };
 
-  </main>
-  <script src="./js/api.js"></script>
+    connection.dataset.state = state;
+    connectionLabel.textContent = labels[state];
+  }
 
-  <script>
+  // Sin conexión no sabemos nada: mejor "desconocido" que un dato viejo.
+  function showOfflineState() {
+    setConnection("offline");
+
+    relayStatus.textContent = "DESCONOCIDO";
+    relayStatus.classList.remove("on", "off");
+    relayButtons.forEach(button => button.setAttribute("aria-pressed", "false"));
+
+    currentTime.textContent = "--:--:--";
+    scheduleStatus.textContent = "--";
+
+    // Si nunca llegamos a cargar los horarios, no dejar "Cargando..." para siempre.
+    if (!hasLoadedStatus && !editingSchedules) {
+      scheduleList.replaceChildren(
+        makeHint("No se pudo conectar con el termotanque.")
+      );
+    }
+  }
+
+  function makeHint(text) {
+    const paragraph = document.createElement("p");
+    paragraph.className = "hint";
+    paragraph.textContent = text;
+    return paragraph;
+  }
+
+
+  /* ============================================================
+     MODO (tabs)
+     showMode          -> solo DIBUJA, no llama a la API
+     changeControlMode -> ACTÚA (API) y después dibuja
+     ============================================================ */
+  function showMode(mode) {
+    tabs.forEach(tab => {
+      tab.setAttribute("aria-selected", String(tab.dataset.mode === mode));
+    });
+
+    Object.entries(panels).forEach(([key, panel]) => {
+      panel.hidden = key !== mode;
+    });
+  }
+
+  async function changeControlMode(mode) {
+    if (changingMode) return;
+
+    const message = document.getElementById("mode-message");
+
+    // Modo que se está mostrando ahora, por si hay que volver atrás.
+    const previousMode =
+      [...tabs].find(tab => tab.getAttribute("aria-selected") === "true")
+        ?.dataset.mode;
+
+    changingMode = true;
+    modeChangeCounter++;
+    tabs.forEach(tab => (tab.disabled = true));
+    message.classList.remove("error");
+    message.textContent = "Aplicando modo...";
+
+    // Actualización optimista: se dibuja al instante y se confirma después.
+    showMode(mode);
+
+    try {
+      await setControlMode(mode);
+
+      message.textContent =
+        mode === "AUTO"
+          ? "Modo automático activado."
+          : "Modo manual activado.";
+    } catch (error) {
+      // El ESP lo rechazó o no respondió: volver al modo anterior.
+      if (previousMode) showMode(previousMode);
+
+      message.classList.add("error");
+      message.textContent = `Error: ${error.message}`;
+      console.error("Error al cambiar el modo:", error);
+    } finally {
+      changingMode = false;
+      tabs.forEach(tab => (tab.disabled = false));
+    }
+
+    // Sincroniza el resto de la pantalla (badge del relé, etc.)
+    // en segundo plano, sin hacer esperar al usuario.
+    refreshStatus();
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      // Si ya es la pestaña activa, no hay nada que cambiar.
+      if (tab.getAttribute("aria-selected") === "true") return;
+
+      changeControlMode(tab.dataset.mode);
+    });
+  });
+
+
+  /* ============================================================
+     CONTROL MANUAL (encender / apagar)
+     ============================================================ */
   async function handleRelayCommand(state) {
     const message = document.getElementById("control-message");
 
@@ -157,11 +352,24 @@
     try {
       const result = await controlRelay(state);
       message.textContent = "✓ " + result;
+
+      // Actualiza el badge de estado sin esperar al próximo polling.
+      await refreshStatus();
     } catch (error) {
       message.textContent = "⚠ " + error.message;
     }
   }
 
+  relayButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      handleRelayCommand(button.dataset.relay);
+    });
+  });
+
+
+  /* ============================================================
+     PRÓXIMO ENCENDIDO
+     ============================================================ */
   function getNextScheduledStart(time, schedules, timeValid) {
     if (!timeValid || !time) {
       return "Sin sincronizar";
@@ -198,13 +406,24 @@
   }
 
 
+  /* ============================================================
+     REFRESCO DE ESTADO (polling)
+     Solo REFLEJA lo que dice el ESP8266. No envía cambios.
+     ============================================================ */
   async function refreshStatus() {
+    // Anota en qué "versión" del modo arrancó esta consulta.
+    const counterAtStart = modeChangeCounter;
+
     try {
       const status = await getStatus();
 
-      // Relay state
-      const relayStatus = document.getElementById("relay-status");
+      // Respondió: estamos online
+      failedPolls = 0;
+      hasLoadedStatus = true;
+      setConnection("online");
+      editButton.disabled = false;
 
+      // Estado del relé
       relayStatus.textContent = status.relayIsOn
         ? "ENCENDIDO"
         : "APAGADO";
@@ -212,275 +431,302 @@
       relayStatus.classList.toggle("on", status.relayIsOn);
       relayStatus.classList.toggle("off", !status.relayIsOn);
 
-      // Control mode
-      const modeSelector = document.getElementById("mode-selector");
+      // Botones manuales: resalta el que coincide con el estado real
+      relayButtons.forEach(button => {
+        const buttonMeansOn = button.dataset.relay === "on";
+        button.setAttribute(
+          "aria-pressed",
+          String(buttonMeansOn === status.relayIsOn)
+        );
+      });
 
-      if (!changingMode) {
-        modeSelector.value = status.mode;
+      // Modo: las tabs siguen al dispositivo, salvo que el usuario esté
+      // cambiándolo o haya cambiado mientras esta consulta estaba en vuelo.
+      if (!changingMode && counterAtStart === modeChangeCounter) {
+        showMode(status.mode);
       }
 
-
-
-      // Current time
-      document.getElementById("current-time").textContent =
+      // Hora actual
+      currentTime.textContent =
         status.timeValid ? status.time : "Sin sincronizar";
 
       // Próximo encendido programado
-      document.getElementById("schedule-status").textContent =
+      scheduleStatus.textContent =
         getNextScheduledStart(status.time, status.schedules, status.timeValid);
 
-      // Schedule list
-      const scheduleList = document.getElementById("schedule-list");
+      // Horarios: se guardan ordenados y se muestran en la vista de lectura.
+      // Si el editor está abierto no se toca, para no pisar lo que se escribe.
+      lastSchedules = sortSchedules(status.schedules);
 
-      scheduleList.replaceChildren();
-
-      status.schedules.forEach((schedule, index) => {
-        const row = document.createElement("div");
-        row.className = "schedule-row";
-
-        const number = document.createElement("span");
-        number.className = "schedule-number";
-        number.textContent = String(index + 1).padStart(2, "0");
-
-        const time = document.createElement("div");
-        time.className = "schedule-time";
-
-        const start = document.createElement("strong");
-        start.textContent = schedule.start;
-
-        const arrow = document.createElement("span");
-        arrow.textContent = "→";
-
-        const end = document.createElement("strong");
-        end.textContent = schedule.end;
-
-        time.append(start, arrow, end);
-
-        const state = document.createElement("span");
-        state.className = "schedule-state";
-        state.textContent = "PROGRAMADO";
-
-        row.append(number, time, state);
-        scheduleList.appendChild(row);
-      });
-      if (!schedulesBeingEdited) {
-        renderScheduleEditor(status.schedules);
+      if (!editingSchedules) {
+        renderScheduleList(lastSchedules);
       }
 
     } catch (error) {
       console.error("Error al consultar el estado:", error);
+
+      // Un fallo aislado no alcanza: el ESP8266 atiende de a una request.
+      failedPolls++;
+
+      if (failedPolls >= OFFLINE_AFTER_FAILURES) {
+        showOfflineState();
+      }
     }
   }
 
-  // Initial status and periodic refresh
-  refreshStatus();
-  setInterval(refreshStatus, 5000);
+
+  /* ============================================================
+     HORARIOS: VISTA DE LECTURA
+     ============================================================ */
+  function sortSchedules(schedules) {
+    return [...schedules].sort((a, b) => a.start.localeCompare(b.start));
+  }
+
+  function renderScheduleList(schedules) {
+    scheduleList.replaceChildren();
+
+    if (schedules.length === 0) {
+      scheduleList.appendChild(makeHint("No hay horarios configurados."));
+      return;
+    }
+
+    schedules.forEach((schedule, index) => {
+      const row = document.createElement("div");
+      row.className = "schedule-row";
+
+      const number = document.createElement("span");
+      number.className = "schedule-number";
+      number.textContent = String(index + 1).padStart(2, "0");
+
+      const time = document.createElement("div");
+      time.className = "schedule-time";
+
+      const start = document.createElement("strong");
+      start.textContent = schedule.start;
+
+      const arrow = document.createElement("span");
+      arrow.textContent = "→";
+
+      const end = document.createElement("strong");
+      end.textContent = schedule.end;
+
+      time.append(start, arrow, end);
+      row.append(number, time);
+      scheduleList.appendChild(row);
+    });
+  }
 
 
-  let changingMode = false;
+  /* ============================================================
+     HORARIOS: ALTERNAR ENTRE LECTURA Y EDICIÓN
+     ============================================================ */
+  function clearScheduleMessage() {
+    scheduleMessage.textContent = "";
+    scheduleMessage.classList.remove("error");
+  }
 
-  async function changeControlMode() {
-    if (changingMode) return;
+  function setScheduleEditing(editing) {
+    editingSchedules = editing;
 
-    const selector = document.getElementById("mode-selector");
-    const message = document.getElementById("mode-message");
-    const selectedMode = selector.value;
+    scheduleList.hidden = editing;
+    scheduleEditor.hidden = !editing;
+    scheduleActions.hidden = !editing;
+    editButton.hidden = editing;
 
-    changingMode = true;
-    selector.disabled = true;
-    message.textContent = "Aplicando modo...";
+    scheduleHint.textContent = editing
+      ? "Editá los horarios y tocá Aplicar horarios para guardarlos. Máximo 4."
+      : "El termotanque se enciende solo en estos horarios.";
+  }
+
+  function startEditingSchedules() {
+    renderScheduleEditor(lastSchedules);
+    clearScheduleMessage();
+    setScheduleEditing(true);
+
+    // El lápiz queda oculto: llevar el foco al editor.
+    scheduleEditor.querySelector("input")?.focus();
+  }
+
+  function cancelEditingSchedules() {
+    setScheduleEditing(false);
+    renderScheduleList(lastSchedules);
+    clearScheduleMessage();
+
+    editButton.focus();
+  }
+
+  editButton.addEventListener("click", startEditingSchedules);
+  cancelButton.addEventListener("click", cancelEditingSchedules);
+
+
+  /* ============================================================
+     HORARIOS: EDITOR
+     ============================================================ */
+  function renderScheduleEditor(schedules) {
+    scheduleEditor.replaceChildren();
+
+    schedules.forEach((schedule, index) => {
+      const row = document.createElement("div");
+      row.className = "schedule-edit-row";
+
+      const heading = document.createElement("div");
+      heading.className = "schedule-edit-heading";
+      heading.textContent = `Horario ${index + 1}`;
+
+      const fields = document.createElement("div");
+      fields.className = "schedule-edit-fields";
+
+      const startLabel = document.createElement("label");
+      startLabel.textContent = "Desde";
+
+      const startInput = document.createElement("input");
+      startInput.type = "time";
+      startInput.className = "schedule-start";
+      startInput.value = schedule.start;
+      startInput.required = true;
+      startInput.setAttribute("aria-label", `Inicio del horario ${index + 1}`);
+
+      startLabel.appendChild(startInput);
+
+      const endLabel = document.createElement("label");
+      endLabel.textContent = "Hasta";
+
+      const endInput = document.createElement("input");
+      endInput.type = "time";
+      endInput.className = "schedule-end";
+      endInput.value = schedule.end;
+      endInput.required = true;
+      endInput.setAttribute("aria-label", `Fin del horario ${index + 1}`);
+
+      endLabel.appendChild(endInput);
+
+      fields.append(startLabel, endLabel);
+      row.append(heading, fields);
+
+      if (schedules.length > 1) {
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "remove-schedule-button";
+        removeButton.textContent = "Quitar";
+        removeButton.addEventListener("click", () => {
+          const updated = readScheduleEditor();
+          updated.splice(index, 1);
+          renderScheduleEditor(updated);
+        });
+
+        row.appendChild(removeButton);
+      }
+
+      scheduleEditor.appendChild(row);
+    });
+
+    addButton.disabled = schedules.length >= 4;
+  }
+
+  function readScheduleEditor() {
+    const rows = [
+      ...document.querySelectorAll(".schedule-edit-row")
+    ];
+
+    return rows.map(row => ({
+      start: row.querySelector(".schedule-start").value,
+      end: row.querySelector(".schedule-end").value
+    }));
+  }
+
+  function validateSchedules(schedules) {
+    if (schedules.length < 1 || schedules.length > 4) {
+      return "Tenés que configurar entre 1 y 4 horarios.";
+    }
+
+    for (const schedule of schedules) {
+      if (!schedule.start || !schedule.end) {
+        return "Completá el inicio y el fin de cada horario.";
+      }
+
+      if (schedule.start >= schedule.end) {
+        return "La hora de inicio debe ser anterior a la hora de fin.";
+      }
+    }
+
+    const sorted = [...schedules].sort((a, b) =>
+      a.start.localeCompare(b.start)
+    );
+
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].start < sorted[i - 1].end) {
+        return "Los horarios no pueden superponerse.";
+      }
+    }
+
+    return null;
+  }
+
+  async function applySchedules() {
+    const schedules = readScheduleEditor();
+
+    const validationError = validateSchedules(schedules);
+
+    if (validationError) {
+      scheduleMessage.textContent = validationError;
+      scheduleMessage.classList.add("error");
+      return;
+    }
+
+    saveButton.disabled = true;
+    addButton.disabled = true;
+    cancelButton.disabled = true;
+    scheduleMessage.classList.remove("error");
+    scheduleMessage.textContent = "Aplicando horarios...";
 
     try {
-      await setControlMode(selectedMode);
+      await saveSchedules(schedules);
 
-      message.textContent =
-        selectedMode === "AUTO"
-          ? "Modo automático activado."
-          : "Modo manual activado.";
+      // El ESP8266 confirmó: volver a la vista de lectura con los datos nuevos.
+      lastSchedules = sortSchedules(schedules);
+      setScheduleEditing(false);
+      renderScheduleList(lastSchedules);
+      scheduleMessage.textContent = "Horarios actualizados correctamente.";
 
-      await refreshStatus();
+      editButton.focus();
+
+      // Sincroniza el resto (próximo encendido) en segundo plano.
+      refreshStatus();
     } catch (error) {
-      message.textContent = `Error: ${error.message}`;
-      console.error("Error al cambiar el modo:", error);
-
-      // Recuperar el modo real si el cambio fue rechazado.
-      await refreshStatus();
+      scheduleMessage.textContent = `Error: ${error.message}`;
+      scheduleMessage.classList.add("error");
+      console.error("Error al aplicar horarios:", error);
     } finally {
-      changingMode = false;
-      selector.disabled = false;
+      saveButton.disabled = false;
+      cancelButton.disabled = false;
+      addButton.disabled = readScheduleEditor().length >= 4;
     }
   }
 
-  document
-    .getElementById("mode-selector")
-    .addEventListener("change", changeControlMode);
-
-  
-let schedulesBeingEdited = false;
-
-function renderScheduleEditor(schedules) {
-  const editor = document.getElementById("schedule-editor");
-  editor.replaceChildren();
-
-  schedules.forEach((schedule, index) => {
-    const row = document.createElement("div");
-    row.className = "schedule-edit-row";
-
-    const heading = document.createElement("div");
-    heading.className = "schedule-edit-heading";
-    heading.textContent = `Horario ${index + 1}`;
-
-    const fields = document.createElement("div");
-    fields.className = "schedule-edit-fields";
-
-    const startLabel = document.createElement("label");
-    startLabel.textContent = "Desde";
-
-    const startInput = document.createElement("input");
-    startInput.type = "time";
-    startInput.className = "schedule-start";
-    startInput.value = schedule.start;
-    startInput.required = true;
-    startInput.setAttribute("aria-label", `Inicio del horario ${index + 1}`);
-
-    startLabel.appendChild(startInput);
-
-    const endLabel = document.createElement("label");
-    endLabel.textContent = "Hasta";
-
-    const endInput = document.createElement("input");
-    endInput.type = "time";
-    endInput.className = "schedule-end";
-    endInput.value = schedule.end;
-    endInput.required = true;
-    endInput.setAttribute("aria-label", `Fin del horario ${index + 1}`);
-
-    endLabel.appendChild(endInput);
-
-    fields.append(startLabel, endLabel);
-    row.append(heading, fields);
-
-    if (schedules.length > 1) {
-      const removeButton = document.createElement("button");
-      removeButton.type = "button";
-      removeButton.className = "remove-schedule-button";
-      removeButton.textContent = "Quitar";
-      removeButton.addEventListener("click", () => {
-        const updated = readScheduleEditor();
-        updated.splice(index, 1);
-        schedulesBeingEdited = true;
-        renderScheduleEditor(updated);
-      });
-
-      row.appendChild(removeButton);
-    }
-
-    editor.appendChild(row);
+  scheduleEditor.addEventListener("input", () => {
+    scheduleMessage.textContent = "Tenés cambios sin aplicar.";
+    scheduleMessage.classList.remove("error");
   });
 
-  document.getElementById("add-schedule-button").disabled =
-    schedules.length >= 4;
-}
+  addButton.addEventListener("click", () => {
+    const schedules = readScheduleEditor();
 
-function readScheduleEditor() {
-  const rows = [
-    ...document.querySelectorAll(".schedule-edit-row")
-  ];
+    if (schedules.length >= 4) return;
 
-  return rows.map(row => ({
-    start: row.querySelector(".schedule-start").value,
-    end: row.querySelector(".schedule-end").value
-  }));
-}
+    schedules.push({ start: "", end: "" });
+    renderScheduleEditor(schedules);
+  });
 
-function validateSchedules(schedules) {
-  if (schedules.length < 1 || schedules.length > 4) {
-    return "Tenés que configurar entre 1 y 4 horarios.";
-  }
+  saveButton.addEventListener("click", applySchedules);
 
-  for (const schedule of schedules) {
-    if (!schedule.start || !schedule.end) {
-      return "Completá el inicio y el fin de cada horario.";
-    }
 
-    if (schedule.start >= schedule.end) {
-      return "La hora de inicio debe ser anterior a la hora de fin.";
-    }
-  }
-
-  const sorted = [...schedules].sort((a, b) =>
-    a.start.localeCompare(b.start)
-  );
-
-  for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i].start < sorted[i - 1].end) {
-      return "Los horarios no pueden superponerse.";
-    }
-  }
-
-  return null;
-}
-
-async function applySchedules() {
-  const message = document.getElementById("schedule-message");
-  const saveButton = document.getElementById("save-schedules-button");
-  const addButton = document.getElementById("add-schedule-button");
-  const schedules = readScheduleEditor();
-
-  const validationError = validateSchedules(schedules);
-
-  if (validationError) {
-    message.textContent = validationError;
-    message.classList.add("error");
-    return;
-  }
-
-  saveButton.disabled = true;
-  addButton.disabled = true;
-  message.classList.remove("error");
-  message.textContent = "Aplicando horarios...";
-
-  try {
-    await saveSchedules(schedules);
-
-    schedulesBeingEdited = false;
-    message.textContent = "Horarios actualizados correctamente.";
-
-    await refreshStatus();
-  } catch (error) {
-    message.textContent = `Error: ${error.message}`;
-    message.classList.add("error");
-    console.error("Error al aplicar horarios:", error);
-  } finally {
-    saveButton.disabled = false;
-    addButton.disabled = readScheduleEditor().length >= 4;
-  }
-}
-
-document.getElementById("schedule-editor").addEventListener("input", () => {
-  schedulesBeingEdited = true;
-  document.getElementById("schedule-message").textContent =
-    "Tenés cambios sin aplicar.";
-  document.getElementById("schedule-message").classList.remove("error");
-});
-
-document.getElementById("add-schedule-button").addEventListener("click", () => {
-  const schedules = readScheduleEditor();
-
-  if (schedules.length >= 4) return;
-
-  schedules.push({ start: "", end: "" });
-  schedulesBeingEdited = true;
-  renderScheduleEditor(schedules);
-});
-
-document.getElementById("save-schedules-button").addEventListener(
-  "click",
-  applySchedules
-);
-
+  /* ============================================================
+     ARRANQUE
+     Va al final, cuando todo lo anterior ya está definido.
+     ============================================================ */
+  refreshStatus();
+  setInterval(refreshStatus, 5000);
 </script>
 
 </body>
-
 </html>

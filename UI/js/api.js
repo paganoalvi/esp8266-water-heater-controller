@@ -24,7 +24,12 @@ async function controlRelay(state) {
 async function getStatus() {
   const response = await fetch(
     `${ESP8266_API_URL}/api/status`,
-    { cache: "no-store" }
+    {
+      cache: "no-store",
+      // Si el ESP8266 no responde en 4 s, se corta y cuenta como fallo.
+      // Es menor que el intervalo de polling (5 s): las consultas no se apilan.
+      signal: AbortSignal.timeout(4000)
+    }
   );
 
   if (!response.ok) {
